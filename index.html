@@ -383,7 +383,6 @@
     let cameraFacingMode = "environment";
     let globalPesertaCache = [];
 
-    // Inisialisasi awal saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
       const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
       switchView(lastView);
@@ -794,6 +793,7 @@
       }
     }
 
+    // Fungsi unduh kartu menggunakan clone elemen agar aman dari masalah CORS/tainted canvas eksternal
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
@@ -802,7 +802,8 @@
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
           useCORS: true, 
-          allowTaint: true,
+          allowTaint: false,
+          backgroundColor: null,
           logging: false 
         });
         const link = document.createElement('a');
@@ -820,7 +821,7 @@
           link.click();
           Swal.close();
         } catch(fallbackErr) {
-          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
+          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu. Pastikan background tidak menggunakan URL eksternal yang memblokir CORS.', 'error');
         }
       }
     }
