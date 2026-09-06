@@ -383,18 +383,21 @@
     let cameraFacingMode = "environment";
     let globalPesertaCache = [];
 
+    // Inisialisasi awal saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
-      loadDashboard();
+      const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
+      switchView(lastView);
       setupDragAndDrop();
       loadSavedCardState();
     });
 
-    function switchView(viewName) {
+    function switchView(targetView) {
       document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
-      document.getElementById('view-' + viewName).classList.remove('hidden');
+      const activeSec = document.getElementById('view-' + targetView);
+      if(activeSec) activeSec.classList.remove('hidden');
 
       document.querySelectorAll('.bottom-nav button[data-target]').forEach(btn => {
-        if(btn.dataset.target === viewName) {
+        if(btn.dataset.target === targetView) {
           btn.classList.add('text-primary');
           btn.classList.remove('text-slate-400');
         } else {
@@ -403,21 +406,16 @@
         }
       });
 
-      localStorage.setItem('AKP2I_LAST_VIEW', viewName);
+      localStorage.setItem('AKP2I_LAST_VIEW', targetView);
 
-      if(viewName === 'scanner') initScanner();
+      if(targetView === 'scanner') initScanner();
       else stopScanner();
 
-      if(viewName === 'dashboard') loadDashboard();
-      if(viewName === 'generator') loadPesertaData();
-      if(viewName === 'scanner') loadAbsensiData();
-      if(viewName === 'card') loadPesertaDropdownCard();
+      if(targetView === 'dashboard') loadDashboard();
+      if(targetView === 'generator') loadPesertaData();
+      if(targetView === 'scanner') loadAbsensiData();
+      if(targetView === 'card') loadPesertaDropdownCard();
     }
-
-    window.addEventListener('load', () => {
-      const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
-      switchView(lastView);
-    });
 
     async function callBackend(action, payload = null) {
       try {
@@ -442,16 +440,20 @@
       }
     }
 
-    function toggleSertifikasi(selectId, containerId) {
-      const sel = document.getElementById(selectId);
-      const container = document.getElementById(containerId);
-      if(sel.value === 'Utama') container.classList.remove('hidden');
+    function toggleSertifikasi(selectElem) {
+      const container = document.getElementById('sertifikasiContainer');
+      if(selectElem.value === 'Utama') container.classList.remove('hidden');
       else container.classList.add('hidden');
     }
 
-    document.getElementById('jenisAnggotaSelect').addEventListener('change', function() {
-      toggleSertifikasi('jenisAnggotaSelect', 'sertifikasiContainer');
-    });
+    function toggleSertifikasiSwal(selectId, containerId) {
+      const sel = document.getElementById(selectId);
+      const container = document.getElementById(containerId);
+      if(sel && container) {
+        if(sel.value === 'Utama') container.classList.remove('hidden');
+        else container.classList.add('hidden');
+      }
+    }
 
     async function loadDashboard() {
       try {
@@ -533,7 +535,7 @@
             </div>
             <div>
               <label class="font-semibold text-slate-600">Jenis Anggota</label>
-              <select id="swalJenis" onchange="toggleSertifikasi('swalJenis', 'swalSertifikasiContainer')" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
+              <select id="swalJenis" onchange="toggleSertifikasiSwal('swalJenis', 'swalSertifikasiContainer')" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
                 <option value="Utama" ${peserta["Jenis Anggota"]==='Utama'?'selected':''}>Utama</option>
                 <option value="Madya" ${peserta["Jenis Anggota"]==='Madya'?'selected':''}>Madya</option>
                 <option value="Pratama" ${peserta["Jenis Anggota"]==='Pratama'?'selected':''}>Pratama</option>
@@ -567,7 +569,7 @@
           const noInput = document.getElementById('swalNoInput').value;
           const cabang = document.getElementById('swalCabang').value;
           const jenis = document.getElementById('swalJenis').value;
-          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked'].value : 'C') : '';
+          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
           const status = document.getElementById('swalStatus').value;
 
           if(!nama || !noInput || !cabang) {
@@ -792,7 +794,6 @@
       }
     }
 
-    // Perbaikan total fungsi unduh kartu dengan penanganan error yang bersih & aman dari CORS
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
@@ -811,7 +812,6 @@
         Swal.close();
       } catch(err) {
         console.error("Card Download Error:", err);
-        // Fallback metode alternatif jika kanvas terblokir CORS sepenuhnya
         try {
           const canvas = await html2canvas(cardElement, { scale: 1, useCORS: true, allowTaint: true });
           const link = document.createElement('a');
@@ -820,7 +820,7 @@
           link.click();
           Swal.close();
         } catch(fallbackErr) {
-          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu. Pastikan file background menggunakan format lokal/standar.', 'error');
+          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
         }
       }
     }
