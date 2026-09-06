@@ -248,7 +248,7 @@
             </select>
           </div>
 
-          <!-- Kustomisasi Nama (Default 18px, Hitam) -->
+          <!-- Kustomisasi Nama -->
           <div class="border-t pt-3 space-y-2">
             <p class="text-xs font-bold text-slate-700">Teks Nama</p>
             <div class="grid grid-cols-3 gap-2">
@@ -263,7 +263,7 @@
             </div>
           </div>
 
-          <!-- Kustomisasi No Anggota (Default 14px, Hitam) -->
+          <!-- Kustomisasi No Anggota -->
           <div class="border-t pt-3 space-y-2">
             <p class="text-xs font-bold text-slate-700">Nomor Anggota</p>
             <div class="grid grid-cols-3 gap-2">
@@ -277,7 +277,7 @@
             </div>
           </div>
 
-          <!-- Kustomisasi Cabang (Default 14px, Hitam) -->
+          <!-- Kustomisasi Cabang -->
           <div class="border-t pt-3 space-y-2">
             <p class="text-xs font-bold text-slate-700">Cabang</p>
             <div class="grid grid-cols-3 gap-2">
@@ -311,7 +311,6 @@
         </div>
 
         <div class="md:col-span-2 bg-slate-100 rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center min-h-[360px]">
-          <!-- Default Background Putih -->
           <div id="cardPreviewContainer" class="relative w-[300px] h-[480px] bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 bg-cover bg-center" style="background-color: #ffffff;">
             
             <div id="cardTextOverlay" class="absolute w-full px-4 text-center transition-all duration-100" style="top: 30%;">
@@ -344,7 +343,7 @@
 
   </main>
 
-  <!-- BOTTOM NAVIGATION BAR (Tata Letak Rata Horizontal & QR Tepat di Tengah) -->
+  <!-- BOTTOM NAVIGATION BAR -->
   <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 py-2 px-2">
     <div class="max-w-md mx-auto grid grid-cols-5 items-center">
       <button onclick="switchView('dashboard')" class="nav-btn flex flex-col items-center justify-center text-slate-400 hover:text-primary transition py-1" data-target="dashboard">
@@ -357,7 +356,6 @@
         <span class="text-[10px] font-medium mt-1">Pendaftaran</span>
       </button>
 
-      <!-- Tombol QR Scanner Tepat di Tengah Layar -->
       <div class="flex flex-col items-center justify-center relative -top-4">
         <button onclick="switchView('scanner')" class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/40 hover:scale-105 transition active:scale-95 border-4 border-white" data-target="scanner" title="QR Scanner">
           <i class="fa-solid fa-qrcode text-2xl"></i>
@@ -701,26 +699,22 @@
       } catch(e) {}
     }
 
-    // Render Kartu & Simpan State ke LocalStorage agar posisi/background tetap terjaga saat refresh
     function renderCardPreview() {
       const selectedNo = document.getElementById('cardPesertaSelect').value;
       const topPos = document.getElementById('textTopPos').value;
       document.getElementById('textTopVal').innerText = topPos + '%';
       document.getElementById('cardTextOverlay').style.top = topPos + '%';
 
-      // Nama
       const nameEl = document.getElementById('cardNamePreview');
       nameEl.style.fontFamily = document.getElementById('fontNameFamily').value;
       nameEl.style.fontSize = document.getElementById('fontNameSize').value + 'px';
       nameEl.style.color = document.getElementById('fontNameColor').value;
 
-      // No Anggota
       const noEl = document.getElementById('cardNoPreview');
       noEl.style.fontFamily = document.getElementById('fontNoFamily').value;
       noEl.style.fontSize = document.getElementById('fontNoSize').value + 'px';
       noEl.style.color = document.getElementById('fontNoColor').value;
 
-      // Cabang
       const cabangEl = document.getElementById('cardCabangPreview');
       cabangEl.style.fontFamily = document.getElementById('fontCabangFamily').value;
       cabangEl.style.fontSize = document.getElementById('fontCabangSize').value + 'px';
@@ -755,7 +749,8 @@
         fontCabangFamily: document.getElementById('fontCabangFamily').value,
         fontCabangSize: document.getElementById('fontCabangSize').value,
         fontCabangColor: document.getElementById('fontCabangColor').value,
-        bgImage: document.getElementById('cardPreviewContainer').style.backgroundImage
+        bgImage: document.getElementById('cardPreviewContainer').style.backgroundImage,
+        bgColor: document.getElementById('cardPreviewContainer').style.backgroundColor
       };
       localStorage.setItem('AKP2I_CARD_STATE', JSON.stringify(state));
     }
@@ -777,7 +772,9 @@
         if(state.fontCabangColor) document.getElementById('fontCabangColor').value = state.fontCabangColor;
         if(state.bgImage && state.bgImage !== 'none') {
           document.getElementById('cardPreviewContainer').style.backgroundImage = state.bgImage;
-          document.getElementById('cardPreviewContainer').style.backgroundColor = 'transparent';
+        }
+        if(state.bgColor) {
+          document.getElementById('cardPreviewContainer').style.backgroundColor = state.bgColor;
         }
       } catch(e) {}
     }
@@ -795,19 +792,25 @@
       }
     }
 
-    // Perbaikan Unduh Kartu menggunakan html2canvas agar tidak mengalami infinite loading
+    // Perbaikan Unduh Kartu Peserta (Menambahkan allowTaint: true dan useCORS: true untuk mencegah kegagalan rendering kanvas)
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
       
       try {
-        const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true, logging: false });
+        const canvas = await html2canvas(cardElement, { 
+          scale: 2, 
+          useCORS: true, 
+          allowTaint: true,
+          logging: false 
+        });
         const link = document.createElement('a');
         link.download = 'Kartu-Peserta-AKP2I.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
         Swal.close();
       } catch(err) {
+        console.error("Card Download Error:", err);
         Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
       }
     }
