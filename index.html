@@ -568,7 +568,7 @@
           const noInput = document.getElementById('swalNoInput').value;
           const cabang = document.getElementById('swalCabang').value;
           const jenis = document.getElementById('swalJenis').value;
-          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
+          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked'].value : 'C') : '';
           const status = document.getElementById('swalStatus').value;
 
           if(!nama || !noInput || !cabang) {
@@ -793,16 +793,17 @@
       }
     }
 
-    // Fungsi unduh kartu menggunakan clone elemen agar aman dari masalah CORS/tainted canvas eksternal
+    // Fungsi unduh kartu menggunakan pendekatan canvas murni/inline untuk menghindari kendala CORS tainted canvas pada file lokal/base64
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
       
       try {
+        // Coba gunakan html2canvas dengan mengabaikan gambar luar jika tainted
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
           useCORS: true, 
-          allowTaint: false,
+          allowTaint: true,
           backgroundColor: null,
           logging: false 
         });
@@ -812,16 +813,76 @@
         link.click();
         Swal.close();
       } catch(err) {
-        console.error("Card Download Error:", err);
+        console.warn("HTML2Canvas tainted, fallback to direct canvas generation...", err);
         try {
-          const canvas = await html2canvas(cardElement, { scale: 1, useCORS: true, allowTaint: true });
+          // Fallback manual drawing ke canvas HTML5 murni tanpa html2canvas
+          const width = 600;
+          const height = 960;
+          const c = document.createElement('canvas');
+          c.width = width;
+          c.height = height;
+          const ctx = c.getContext('2d');
+
+          // Background color / image
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+
+          const bgStyle = cardElement.style.backgroundImage;
+          if (bgStyle && bgStyle.includes('url')) {
+            const urlMatch = bgStyle.match(/url$$["']?(.*?)["']?$$/);
+            if (urlMatch && urlMatch[1]) {
+              await new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => { ctx.drawImage(img, 0, 0, width, height); resolve(); };
+                img.onerror = () => resolve();
+                img.src = urlMatch[1];
+              });
+            }
+          }
+
+          // Teks
+          const topPosPct = parseFloat(document.getElementById('textTopPos').value) / 100;
+          const textY = height * topPosPct;
+
+          // Nama
+          ctx.font = `bold ${parseInt(document.getElementById('fontNameSize').value) * 2}px ${document.getElementById('fontNameFamily').value}, sans-serif`;
+          ctx.fillStyle = document.getElementById('fontNameColor').value;
+          ctx.textAlign = 'center';
+          ctx.fillText(document.getElementById('cardNamePreview').innerText, width / 2, textY);
+
+          // No Anggota
+          ctx.font = `600 ${parseInt(document.getElementById('fontNoSize').value) * 2}px ${document.getElementById('fontNoFamily').value}, sans-serif`;
+          ctx.fillStyle = document.getElementById('fontNoColor').value;
+          ctx.fillText(document.getElementById('cardNoPreview').innerText, width / 2, textY + 45);
+
+          // Cabang
+          ctx.font = `${parseInt(document.getElementById('fontCabangSize').value) * 2}px ${document.getElementById('fontCabangFamily').value}, sans-serif`;
+          ctx.fillStyle = document.getElementById('fontCabangColor').value;
+          ctx.fillText(document.getElementById('cardCabangPreview').innerText, width / 2, textY + 85);
+
+          // QR Code Image
+          const qrImg = cardElement.querySelector('#cardQrCode img') || cardElement.querySelector('#cardQrCode canvas');
+          if (qrImg) {
+            await new Promise((resolve) => {
+              const qImg = new Image();
+              qImg.onload = () => {
+                ctx.drawImage(qImg, (width - 180) / 2, height - 230, 180, 180);
+                resolve();
+              };
+              qImg.onerror = () => resolve();
+              qImg.src = qrImg.src || qrImg.toDataURL();
+            });
+          }
+
           const link = document.createElement('a');
           link.download = 'Kartu-Peserta-AKP2I.png';
-          link.href = canvas.toDataURL('image/png');
+          link.href = c.toDataURL('image/png');
           link.click();
           Swal.close();
         } catch(fallbackErr) {
-          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu. Pastikan background tidak menggunakan URL eksternal yang memblokir CORS.', 'error');
+          console.error("Fallback error:", fallbackErr);
+          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
         }
       }
     }
