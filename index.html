@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABSENSI HUT 11 AKP2I</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@400;600;700&family=Inter:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- QR Code Scanner & Generator Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/html2canvas.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#00923f', primaryHover: '#007a34' },
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+    .bottom-nav { box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05); }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+        <i class="fa-solid fa-qrcode"></i>
+      </div>
+      <div>
+        <h1 id="appTitleHeader" class="font-bold text-base leading-tight text-slate-800">ABSENSI HUT 11 AKP2I</h1>
+        <p class="text-xs text-slate-500">Sistem Manajemen & Absensi Terpadu</p>
+      </div>
+    </div>
+    <button onclick="initSheetDB()" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition" title="Inisialisasi Database Sheet"><i class="fa-solid fa-database mr-1"></i> Init DB</button>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-4xl mx-auto p-4 md:p-6">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6 view-section">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-slate-800">Dashboard Utama</h2>
+        <button onclick="loadDashboard()" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </div>
+
+      <!-- Widgets -->
+      <div class="grid grid-cols-3 gap-3 md:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-slate-500 font-medium">Total Peserta</p>
+          <h3 id="statTotal" class="text-2xl md:text-3xl font-bold text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-primary font-medium">Hadir</p>
+          <h3 id="statHadir" class="text-2xl md:text-3xl font-bold text-primary mt-1">0</h3>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <p class="text-xs text-amber-600 font-medium">Belum Hadir</p>
+          <h3 id="statBelum" class="text-2xl md:text-3xl font-bold text-amber-600 mt-1">0</h3>
+        </div>
+      </div>
+
+      <!-- Tabel Ringkasan Peserta -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <h3 class="font-bold text-sm text-slate-800 mb-3"><i class="fa-solid fa-users text-primary mr-2"></i>Peserta Terbaru</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500">
+                <th class="py-2 px-3">Nama Lengkap</th>
+                <th class="py-2 px-3">Nomor Anggota</th>
+                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="dashPesertaTable" class="divide-y divide-slate-100">
+              <tr><td colspan="4" class="py-4 text-center text-slate-400">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabel Ringkasan Absensi -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <h3 class="font-bold text-sm text-slate-800 mb-3"><i class="fa-solid fa-clipboard-check text-primary mr-2"></i>Log Absensi Terbaru</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500">
+                <th class="py-2 px-3">Nama</th>
+                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Waktu Scan</th>
+              </tr>
+            </thead>
+            <tbody id="dashAbsensiTable" class="divide-y divide-slate-100">
+              <tr><td colspan="3" class="py-4 text-center text-slate-400">Belum ada data scan.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: QR SCANNER -->
+    <section id="view-scanner" class="space-y-6 view-section hidden">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-slate-800">QR Code Scanner</h2>
+        <div class="flex gap-2">
+          <button onclick="resetScanner()" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200"><i class="fa-solid fa-rotate-right mr-1"></i> Reset</button>
+          <button onclick="switchCamera()" class="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-semibold hover:bg-primary/20"><i class="fa-solid fa-camera-rotate mr-1"></i> Switch Cam</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div id="reader" class="w-full overflow-hidden rounded-xl bg-slate-900 min-h-[280px]"></div>
+        <p class="text-xs text-center text-slate-500 mt-3">Arahkan kamera ke QR Code peserta untuk melakukan absensi otomatis.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-sm text-slate-800"><i class="fa-solid fa-list-check text-primary mr-2"></i>Daftar Hadir Real-Time</h3>
+          <div class="flex gap-2">
+            <button onclick="loadAbsensiData()" class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-xs font-semibold"><i class="fa-solid fa-rotate"></i></button>
+            <button onclick="deleteSelected('Data Absensi', 'absensiTableBody')" class="px-2.5 py-1 bg-red-50 text-red-600 rounded text-xs font-semibold"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500">
+                <th class="py-2 px-2 w-8"><input type="checkbox" onchange="toggleSelectAll(this, 'absensiTableBody')"></th>
+                <th class="py-2 px-3 cursor-pointer" onclick="sortTable('absensiTableBody', 1)">No. Anggota <i class="fa-solid fa-sort text-[10px]"></i></th>
+                <th class="py-2 px-3 cursor-pointer" onclick="sortTable('absensiTableBody', 2)">Nama Lengkap <i class="fa-solid fa-sort text-[10px]"></i></th>
+                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Waktu Scan</th>
+              </tr>
+            </thead>
+            <tbody id="absensiTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada data absensi.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: PEMBUAT QR & PENDAFTARAN -->
+    <section id="view-generator" class="space-y-6 view-section hidden">
+      <h2 class="text-xl font-bold text-slate-800">Pendaftaran & Pembuat QR Peserta</h2>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h3 class="font-bold text-sm text-slate-800 mb-4"><i class="fa-solid fa-user-plus text-primary mr-2"></i>Formulir Data Peserta</h3>
+        <form id="pesertaForm" onsubmit="handleRegisterPeserta(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+              <input type="text" name="nama" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Input (Angka Saja)</label>
+              <input type="number" name="noInput" placeholder="Contoh: 1234" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Cabang</label>
+              <input type="text" name="cabang" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Anggota</label>
+              <select name="jenis" id="jenisAnggotaSelect" onchange="toggleSertifikasi(this)" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary bg-white">
+                <option value="Utama">Utama</option>
+                <option value="Madya">Madya</option>
+                <option value="Pratama">Pratama</option>
+                <option value="Kehormatan">Kehormatan</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="sertifikasiContainer" class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <label class="block text-xs font-semibold text-slate-600 mb-2">Sertifikasi (Khusus Anggota Utama)</label>
+            <div class="flex gap-6">
+              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="A" class="text-primary focus:ring-primary"> A</label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="B" class="text-primary focus:ring-primary"> B</label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="C" checked class="text-primary focus:ring-primary"> C</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Status Keanggotaan / Undangan</label>
+            <select name="status" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary bg-white">
+              <option value="Lunas">Lunas</option>
+              <option value="Belum Lunas">Belum Lunas</option>
+              <option value="Tamu Undangan">Tamu Undangan</option>
+            </select>
+          </div>
+
+          <button type="submit" class="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primaryHover transition shadow-md shadow-primary/20">Simpan & Generate QR</button>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-sm text-slate-800"><i class="fa-solid fa-database text-primary mr-2"></i>Database Peserta</h3>
+          <div class="flex gap-2">
+            <button onclick="loadPesertaData()" class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-xs font-semibold"><i class="fa-solid fa-rotate"></i></button>
+            <button onclick="deleteSelected('Data Peserta', 'pesertaTableBody')" class="px-2.5 py-1 bg-red-50 text-red-600 rounded text-xs font-semibold"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500">
+                <th class="py-2 px-2 w-8"><input type="checkbox" onchange="toggleSelectAll(this, 'pesertaTableBody')"></th>
+                <th class="py-2 px-3 cursor-pointer" onclick="sortTable('pesertaTableBody', 1)">Nama <i class="fa-solid fa-sort text-[10px]"></i></th>
+                <th class="py-2 px-3 cursor-pointer" onclick="sortTable('pesertaTableBody', 2)">No. Anggota <i class="fa-solid fa-sort text-[10px]"></i></th>
+                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Jenis</th>
+                <th class="py-2 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="pesertaTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="py-4 text-center text-slate-400">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: PEMBUAT KARTU PESERTA -->
+    <section id="view-card" class="space-y-6 view-section hidden">
+      <h2 class="text-xl font-bold text-slate-800">Pembuat Kartu Peserta</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-800"><i class="fa-solid fa-sliders text-primary mr-2"></i>Pengaturan Kartu</h3>
+          
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Peserta</label>
+            <select id="cardPesertaSelect" onchange="renderCardPreview()" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-primary">
+              <option value="">-- Pilih Peserta --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Upload Background Kartu</label>
+            <div id="dropZoneCard" class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-primary transition cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-up text-slate-400 text-2xl mb-1"></i>
+              <p class="text-xs text-slate-500">Seret file atau <span class="text-primary font-semibold">Pilih File</span></p>
+              <input type="file" id="cardBgInput" accept="image/*" class="hidden" onchange="handleCardBgUpload(this)">
+            </div>
+          </div>
+
+          <!-- Kustomisasi Font Family -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Font</label>
+            <select id="cardFontSelect" onchange="renderCardPreview()" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-primary">
+              <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+              <option value="'Poppins', sans-serif">Poppins</option>
+              <option value="'Inter', sans-serif">Inter</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
+            </select>
+          </div>
+
+          <!-- Kustomisasi Ukuran Font Nama -->
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600">Ukuran Font Nama</label>
+            <div class="flex gap-2 items-center">
+              <input type="range" id="fontSizeName" min="12" max="28" value="18" oninput="renderCardPreview()" class="w-full accent-primary">
+              <span id="fontSizeNameVal" class="text-xs text-slate-500 w-8">18px</span>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600">Posisi Vertikal Teks (%)</label>
+            <div class="flex gap-2 items-center">
+              <input type="range" id="textTopPos" min="10" max="90" value="40" oninput="renderCardPreview()" class="w-full accent-primary">
+              <span id="textTopVal" class="text-xs text-slate-500 w-8">40%</span>
+            </div>
+          </div>
+
+          <button onclick="downloadCardImage()" class="w-full bg-primary text-white font-semibold py-2.5 rounded-xl hover:bg-primaryHover transition text-xs shadow-sm"><i class="fa-solid fa-download mr-1"></i> Unduh Kartu</button>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-100 rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center min-h-[360px]">
+          <div id="cardPreviewContainer" class="relative w-[300px] h-[480px] bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop')">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+            <div id="cardTextOverlay" class="absolute w-full px-4 text-center transition-all duration-100" style="top: 40%;">
+              <h3 id="cardNamePreview" class="text-white font-bold text-lg drop-shadow-md">NAMA PESERTA</h3>
+              <p id="cardNoPreview" class="text-emerald-300 font-semibold text-xs mt-0.5">KA-0000/AU.C/AKP2I</p>
+              <p id="cardCabangPreview" class="text-slate-300 text-[10px] mt-0.5">Cabang Jakarta</p>
+            </div>
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white p-2 rounded-xl shadow-md">
+              <div id="cardQrCode" class="w-24 h-24"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: SETTING -->
+    <section id="view-setting" class="space-y-6 view-section hidden">
+      <h2 class="text-xl font-bold text-slate-800">Pengaturan Aplikasi</h2>
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <h3 class="font-bold text-sm text-slate-800 mb-2"><i class="fa-solid fa-globe text-primary mr-2"></i>Identitas Aplikasi</h3>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Aplikasi</label>
+          <input type="text" id="settingAppName" value="ABSENSI HUT 11 AKP2I" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+        </div>
+        <button onclick="saveGeneralSettings()" class="bg-primary text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-primaryHover transition text-sm shadow-sm">Simpan Pengaturan</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 py-2 px-4">
+    <div class="max-w-md mx-auto flex justify-around items-center relative">
+      <button onclick="switchView('dashboard')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-primary transition" data-target="dashboard">
+        <i class="fa-solid fa-chart-pie text-lg"></i>
+        <span class="text-[10px] font-medium mt-1">Dashboard</span>
+      </button>
+
+      <button onclick="switchView('generator')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-primary transition" data-target="generator">
+        <i class="fa-solid fa-user-plus text-lg"></i>
+        <span class="text-[10px] font-medium mt-1">Pendaftaran</span>
+      </button>
+
+      <div class="relative -top-5">
+        <button onclick="switchView('scanner')" class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/40 hover:scale-105 transition active:scale-95 border-4 border-white" data-target="scanner" title="QR Scanner">
+          <i class="fa-solid fa-qrcode text-2xl"></i>
+        </button>
+      </div>
+
+      <button onclick="switchView('card')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-primary transition" data-target="card">
+        <i class="fa-solid fa-id-card text-lg"></i>
+        <span class="text-[10px] font-medium mt-1">Kartu</span>
+      </button>
+
+      <button onclick="switchView('setting')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-primary transition" data-target="setting">
+        <i class="fa-solid fa-gear text-lg"></i>
+        <span class="text-[10px] font-medium mt-1">Setting</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqUv2-BABFA-hFJrpXG36lZ0kAg20vUKLuUWA6yd7n-VsuFGcvpw_S1SoBmRbrz7P2/exec"; 
+
+    let html5QrCode = null;
+    let cameraFacingMode = "environment";
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDashboard();
+      setupDragAndDrop();
+    });
+
+    function switchView(viewName) {
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById('view-' + viewName).classList.remove('hidden');
+
+      document.querySelectorAll('.bottom-nav button[data-target]').forEach(btn => {
+        if(btn.dataset.target === viewName) {
+          btn.classList.add('text-primary');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('text-primary');
+          btn.classList.add('text-slate-400');
+        }
+      });
+
+      localStorage.setItem('AKP2I_LAST_VIEW', viewName);
+
+      if(viewName === 'scanner') { initScanner(); } else { stopScanner(); }
+      if(viewName === 'dashboard') loadDashboard();
+      if(viewName === 'generator') loadPesertaData();
+      if(viewName === 'scanner') loadAbsensiData();
+      if(viewName === 'card') loadPesertaDropdownCard();
+    }
+
+    window.addEventListener('load', () => {
+      const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
+      switchView(lastView);
+    });
+
+    async function callBackend(actionName, payloadData = null) {
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: actionName, payload: payloadData })
+        });
+        return await response.json();
+      } catch (e) {
+        console.error("Backend Error:", e);
+        throw e;
+      }
+    }
+
+    async function initSheetDB() {
+      Swal.showLoading();
+      try {
+        const res = await callBackend("initDB");
+        Swal.fire('Berhasil', res.message || 'Database siap!', 'success');
+      } catch(e) {
+        Swal.fire('Error', 'Gagal terhubung ke backend. Pastikan URL Web App sudah benar.', 'error');
+      }
+    }
+
+    function toggleSertifikasi(select) {
+      const container = document.getElementById('sertifikasiContainer');
+      if(select.value === 'Utama') { container.classList.remove('hidden'); } else { container.classList.add('hidden'); }
+    }
+
+    async function loadDashboard() {
+      try {
+        const res = await callBackend("getDashboard");
+        if(!res.success) return;
+        document.getElementById('statTotal').innerText = res.summary.total;
+        document.getElementById('statHadir').innerText = res.summary.hadir;
+        document.getElementById('statBelum').innerText = res.summary.belumHadir;
+
+        const pTable = document.getElementById('dashPesertaTable');
+        pTable.innerHTML = res.peserta.length ? res.peserta.map(p => `
+          <tr>
+            <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${p["Cabang"]}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Lunas'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${p['Status']}</span></td>
+          </tr>
+        `).join('') : `<tr><td colspan="4" class="py-4 text-center text-slate-400">Belum ada peserta.</td></tr>`;
+
+        const aTable = document.getElementById('dashAbsensiTable');
+        aTable.innerHTML = res.absensi.length ? res.absensi.map(a => `
+          <tr>
+            <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nama Lengkap"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${a["Cabang"]}</td>
+            <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"]}</td>
+          </tr>
+        `).join('') : `<tr><td colspan="3" class="py-4 text-center text-slate-400">Belum ada data scan.</td></tr>`;
+      } catch(e) {}
+    }
+
+    async function handleRegisterPeserta(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = {
+        nama: form.nama.value,
+        noInput: form.noInput.value,
+        cabang: form.cabang.value,
+        jenis: form.jenis.value,
+        sertifikasi: form.jenis.value === 'Utama' ? form.querySelector('input[name="sertifikasi"]:checked').value : '',
+        status: form.status.value
+      };
+
+      Swal.showLoading();
+      try {
+        const res = await callBackend("savePeserta", formData);
+        if(res.success) {
+          Swal.fire('Berhasil!', `Peserta terdaftar dengan nomor: ${res.nomorAnggota}`, 'success');
+          form.reset();
+          loadPesertaData();
+        } else {
+          Swal.fire('Gagal', res.message || 'Terjadi kesalahan.', 'error');
+        }
+      } catch(err) {
+        Swal.fire('Gagal', 'Terjadi kesalahan jaringan.', 'error');
+      }
+    }
+
+    async function loadPesertaData() {
+      try {
+        const res = await callBackend("getPeserta");
+        const tbody = document.getElementById('pesertaTableBody');
+        tbody.innerHTML = res.length ? res.map(p => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${p.ID}"></td>
+            <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${p["Cabang"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${p["Jenis Anggota"]}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">${p['Status']}</span></td>
+          </tr>
+        `).join('') : `<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data peserta.</td></tr>`;
+      } catch(e) {}
+    }
+
+    async function loadAbsensiData() {
+      try {
+        const res = await callBackend("getAbsensi");
+        const tbody = document.getElementById('absensiTableBody');
+        tbody.innerHTML = res.length ? res.map(a => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${a["ID Absen"] || ''}"></td>
+            <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nomor Anggota"]}</td>
+            <td class="py-2.5 px-3 text-slate-800">${a["Nama Lengkap"]}</td>
+            <td class="py-2.5 px-3 text-slate-600">${a["Cabang"]}</td>
+            <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"]}</td>
+          </tr>
+        `).join('') : `<tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada data absensi.</td></tr>`;
+      } catch(e) {}
+    }
+
+    function initScanner() {
+      if (html5QrCode) return;
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start({ facingMode: cameraFacingMode }, { fps: 10, qrbox: { width: 220, height: 220 } }, async (decodedText) => {
+        handleScannedCode(decodedText);
+      }, (error) => {});
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
+      }
+    }
+
+    function switchCamera() {
+      cameraFacingMode = cameraFacingMode === "environment" ? "user" : "environment";
+      stopScanner();
+      setTimeout(initScanner, 500);
+    }
+
+    function resetScanner() {
+      Swal.fire({ title: 'Scanner Direset', icon: 'info', timer: 1000, showConfirmButton: false });
+    }
+
+    async function handleScannedCode(qrString) {
+      if(html5QrCode && html5QrCode.isScanning) { await html5QrCode.pause(true); }
+      try {
+        const res = await callBackend("processScan", qrString);
+        if (res.duplicate) {
+          Swal.fire({
+            title: 'QR Sudah Pernah Discan!', text: res.message, icon: 'warning',
+            showCancelButton: true, confirmButtonText: 'Lanjut', cancelButtonText: 'Tutup',
+            confirmButtonColor: '#00923f'
+          }).then(() => { if(html5QrCode) html5QrCode.resume(); });
+        } else if (res.success) {
+          Swal.fire({ title: 'Absensi Berhasil!', text: res.message, icon: 'success', timer: 2000, showConfirmButton: false });
+          loadAbsensiData();
+          setTimeout(() => { if(html5QrCode) html5QrCode.resume(); }, 2500);
+        } else {
+          Swal.fire({ title: 'Peringatan', text: res.message, icon: 'error', confirmButtonColor: '#00923f' })
+          .then(() => { if(html5QrCode) html5QrCode.resume(); });
+        }
+      } catch(e) { if(html5QrCode) html5QrCode.resume(); }
+    }
+
+    async function loadPesertaDropdownCard() {
+      try {
+        const res = await callBackend("getPeserta");
+        window.pesertaListCache = res;
+        const select = document.getElementById('cardPesertaSelect');
+        select.innerHTML = '<option value="">-- Pilih Peserta --</option>' + res.map(p => `<option value="${p['Nomor Anggota']}">${p['Nama Lengkap']} (${p['Nomor Anggota']})</option>`).join('');
+      } catch(e) {}
+    }
+
+    function renderCardPreview() {
+      const selectedNo = document.getElementById('cardPesertaSelect').value;
+      const topPos = document.getElementById('textTopPos').value;
+      const fontName = document.getElementById('cardFontSelect').value;
+      const fontSize = document.getElementById('fontSizeName').value;
+
+      document.getElementById('textTopVal').innerText = topPos + '%';
+      document.getElementById('fontSizeNameVal').innerText = fontSize + 'px';
+      
+      const overlay = document.getElementById('cardTextOverlay');
+      overlay.style.top = topPos + '%';
+      overlay.style.fontFamily = fontName;
+
+      const nameEl = document.getElementById('cardNamePreview');
+      nameEl.style.fontSize = fontSize + 'px';
+
+      if(!selectedNo || !window.pesertaListCache) return;
+      const peserta = window.pesertaListCache.find(p => p['Nomor Anggota'] === selectedNo);
+      if(peserta) {
+        nameEl.innerText = peserta['Nama Lengkap'];
+        document.getElementById('cardNoPreview').innerText = peserta['Nomor Anggota'];
+        document.getElementById('cardCabangPreview').innerText = "Cabang: " + peserta['Cabang'];
+
+        const qrContainer = document.getElementById('cardQrCode');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, { text: peserta['QR String'], width: 90, height: 90 });
+      }
+    }
+
+    function handleCardBgUpload(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById('cardPreviewContainer').style.backgroundImage = `url('${e.target.result}')`;
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function downloadCardImage() {
+      const cardElement = document.getElementById('cardPreviewContainer');
+      Swal.showLoading();
+      html2canvas(cardElement, { scale: 2, useCORS: true }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'Kartu-Peserta-AKP2I.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        Swal.close();
+      });
+    }
+
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('dropZoneCard');
+      if(!dropZone) return;
+      dropZone.addEventListener('click', () => document.getElementById('cardBgInput').click());
+      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary'));
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-primary');
+        if (e.dataTransfer.files.length) {
+          document.getElementById('cardBgInput').files = e.dataTransfer.files;
+          handleCardBgUpload(document.getElementById('cardBgInput'));
+        }
+      });
+    }
+
+    function toggleSelectAll(master, tbodyId) {
+      document.querySelectorAll(`#${tbodyId} .row-checkbox`).forEach(cb => cb.checked = master.checked);
+    }
+
+    async function deleteSelected(sheetName, tbodyId) {
+      const checkboxes = document.querySelectorAll(`#${tbodyId} .row-checkbox:checked`);
+      if(!checkboxes.length) return Swal.fire('Peringatan', 'Pilih data yang ingin dihapus!', 'warning');
+      const ids = Array.from(checkboxes).map(cb => cb.value);
+      
+      const confirm = await Swal.fire({
+        title: 'Hapus Data?', text: `Hapus ${ids.length} data terpilih?`, icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus'
+      });
+
+      if(confirm.isConfirmed) {
+        Swal.showLoading();
+        try {
+          await callBackend("deleteData", { sheet: sheetName, ids: ids });
+          Swal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
+          if(sheetName === 'Data Peserta') loadPesertaData();
+          if(sheetName === 'Data Absensi') loadAbsensiData();
+        } catch(e) {
+          Swal.fire('Gagal', 'Terjadi kesalahan saat menghapus.', 'error');
+        }
+      }
+    }
+
+    function sortTable(tbodyId, colIndex) {
+      const tbody = document.getElementById(tbodyId);
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      if(rows.length <= 1) return;
+      rows.sort((a, b) => (a.children[colIndex]?.innerText || '').localeCompare(b.children[colIndex]?.innerText || ''));
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function saveGeneralSettings() {
+      document.getElementById('appTitleHeader').innerText = document.getElementById('settingAppName').value;
+      Swal.fire('Berhasil', 'Pengaturan diperbarui!', 'success');
+    }
+  </script>
+</body>
+</html>
