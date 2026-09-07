@@ -844,9 +844,13 @@
         allowOutsideClick: false, 
         didOpen: () => { Swal.showLoading(); } 
       });
+
+      // Simpan state background asli
+      const originalBgImage = cardElement.style.backgroundImage;
+      const originalBgColor = cardElement.style.backgroundColor;
       
       try {
-        // Percobaan 1: Unduh beserta background (Wajib allowTaint: false agar bisa jadi gambar)
+        // Percobaan 1: Render normal
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
           useCORS: true,
@@ -862,22 +866,22 @@
         Swal.close();
         
       } catch(err) {
-        console.warn("Gagal render gambar luar, beralih ke mode tanpa background...");
+        console.warn("Gagal merender gambar eksternal, beralih ke mode aman...");
         
         try {
-          // Percobaan 2: Fallback instan - Unduh tanpa background menggunakan 'onclone' (tanpa merusak tampilan asli)
+          // Lakukan manipulasi DOM asli sementara agar terhindar dari deteksi keamanan browser
+          cardElement.style.backgroundImage = 'none';
+          cardElement.style.backgroundColor = '#ffffff';
+          
+          // Jeda sangat singkat (50ms) agar browser mencatat perubahan DOM sebelum html2canvas bekerja
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
           const canvasFallback = await html2canvas(cardElement, { 
             scale: 2, 
             useCORS: true, 
             allowTaint: false,
             backgroundColor: '#ffffff',
-            onclone: (clonedDoc) => {
-              const clonedCard = clonedDoc.getElementById('cardPreviewContainer');
-              if (clonedCard) {
-                clonedCard.style.backgroundImage = 'none';
-                clonedCard.style.backgroundColor = '#ffffff';
-              }
-            }
+            logging: false
           });
           
           const link = document.createElement('a');
@@ -885,10 +889,14 @@
           link.href = canvasFallback.toDataURL('image/png');
           link.click();
           
-          Swal.fire('Berhasil (Tanpa Background)', 'Karena pembatasan server gambar, kartu berhasil diunduh dengan latar belakang putih.', 'success');
+          Swal.fire('Berhasil (Tanpa Background)', 'Karena pembatasan sistem keamanan dari link URL gambar, kartu berhasil diunduh dengan latar putih.', 'success');
         } catch(fallbackErr) {
-          console.error(fallbackErr);
-          Swal.fire('Gagal', 'Terjadi kesalahan sistem saat memproses gambar.', 'error');
+          console.error("Fatal Error html2canvas:", fallbackErr);
+          Swal.fire('Gagal', 'Sistem tidak dapat mengkonversi kartu menjadi gambar.', 'error');
+        } finally {
+          // Kembalikan background ke state semula terlepas dari berhasil atau gagal
+          cardElement.style.backgroundImage = originalBgImage;
+          cardElement.style.backgroundColor = originalBgColor;
         }
       }
     }
