@@ -383,35 +383,46 @@
     let globalPesertaCache = [];
 
     window.addEventListener('DOMContentLoaded', () => {
-      const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
-      switchView(lastView);
-      loadSavedCardState();
+      try {
+        const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
+        switchView(lastView);
+        loadSavedCardState();
+      } catch(e) {
+        switchView('dashboard');
+      }
     });
 
     function switchView(targetView) {
-      document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
-      const activeSec = document.getElementById('view-' + targetView);
-      if(activeSec) activeSec.classList.remove('hidden');
+      try {
+        document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+        const activeSec = document.getElementById('view-' + targetView);
+        if(activeSec) activeSec.classList.remove('hidden');
 
-      document.querySelectorAll('.bottom-nav button[data-target]').forEach(btn => {
-        if(btn.dataset.target === targetView) {
-          btn.classList.add('text-primary');
-          btn.classList.remove('text-slate-400');
+        document.querySelectorAll('.bottom-nav button[data-target]').forEach(btn => {
+          if(btn.dataset.target === targetView) {
+            btn.classList.add('text-primary');
+            btn.classList.remove('text-slate-400');
+          } else {
+            btn.classList.remove('text-primary');
+            btn.classList.add('text-slate-400');
+          }
+        });
+
+        localStorage.setItem('AKP2I_LAST_VIEW', targetView);
+
+        if(targetView === 'scanner') {
+          setTimeout(initScanner, 200);
         } else {
-          btn.classList.remove('text-primary');
-          btn.classList.add('text-slate-400');
+          stopScanner();
         }
-      });
 
-      localStorage.setItem('AKP2I_LAST_VIEW', targetView);
-
-      if(targetView === 'scanner') initScanner();
-      else stopScanner();
-
-      if(targetView === 'dashboard') loadDashboard();
-      if(targetView === 'generator') loadPesertaData();
-      if(targetView === 'scanner') loadAbsensiData();
-      if(targetView === 'card') loadPesertaDropdownCard();
+        if(targetView === 'dashboard') loadDashboard();
+        if(targetView === 'generator') loadPesertaData();
+        if(targetView === 'scanner') loadAbsensiData();
+        if(targetView === 'card') loadPesertaDropdownCard();
+      } catch(err) {
+        console.error("Navigation Error:", err);
+      }
     }
 
     async function callBackend(action, payload = null) {
@@ -428,6 +439,7 @@
     }
 
     async function initSheetDB() {
+      if(typeof Swal === 'undefined') return alert('Library SweetAlert belum termuat.');
       Swal.showLoading();
       try {
         const res = await callBackend('initDB');
@@ -455,12 +467,13 @@
     async function loadDashboard() {
       try {
         const res = await callBackend('getDashboard');
-        document.getElementById('statTotal').innerText = res.summary.total;
-        document.getElementById('statHadir').innerText = res.summary.hadir;
-        document.getElementById('statBelum').innerText = res.summary.belumHadir;
+        if(!res) return;
+        document.getElementById('statTotal').innerText = res.summary?.total || 0;
+        document.getElementById('statHadir').innerText = res.summary?.hadir || 0;
+        document.getElementById('statBelum').innerText = res.summary?.belumHadir || 0;
 
         const pTable = document.getElementById('dashPesertaTable');
-        pTable.innerHTML = res.peserta.length ? res.peserta.map(p => `
+        pTable.innerHTML = res.peserta && res.peserta.length ? res.peserta.map(p => `
           <tr>
             <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
             <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
@@ -470,7 +483,7 @@
         `).join('') : `<tr><td colspan="4" class="py-4 text-center text-slate-400">Belum ada peserta.</td></tr>`;
 
         const aTable = document.getElementById('dashAbsensiTable');
-        aTable.innerHTML = res.absensi.length ? res.absensi.map(a => `
+        aTable.innerHTML = res.absensi && res.absensi.length ? res.absensi.map(a => `
           <tr>
             <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nama Lengkap"] || ''}</td>
             <td class="py-2.5 px-3 text-slate-600">${a["Cabang"] || ''}</td>
@@ -495,14 +508,14 @@
         status: form.status.value
       };
 
-      Swal.showLoading();
+      if(typeof Swal !== 'undefined') Swal.showLoading();
       try {
         const res = await callBackend('savePeserta', formData);
-        Swal.fire('Berhasil!', res.message, 'success');
+        if(typeof Swal !== 'undefined') Swal.fire('Berhasil!', res.message, 'success');
         form.reset();
         loadPesertaData();
       } catch(err) {
-        Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
+        if(typeof Swal !== 'undefined') Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
       }
     }
 
@@ -592,9 +605,9 @@
     async function loadPesertaData() {
       try {
         const res = await callBackend('getPeserta');
-        globalPesertaCache = res;
+        globalPesertaCache = res || [];
         const tbody = document.getElementById('pesertaTableBody');
-        tbody.innerHTML = res.length ? res.map(p => `
+        tbody.innerHTML = globalPesertaCache.length ? globalPesertaCache.map(p => `
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${p.ID || ''}"></td>
             <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
@@ -617,7 +630,7 @@
       try {
         const res = await callBackend('getAbsensi');
         const tbody = document.getElementById('absensiTableBody');
-        tbody.innerHTML = res.length ? res.map(a => `
+        tbody.innerHTML = res && res.length ? res.map(a => `
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${a["ID Absen"] || ''}"></td>
             <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nomor Anggota"] || ''}</td>
@@ -647,18 +660,27 @@
     }
 
     function initScanner() {
-      if (html5QrCode) return;
-      html5QrCode = new Html5Qrcode("reader");
-      const config = { fps: 10, qrbox: { width: 220, height: 220 } };
-      
-      html5QrCode.start({ facingMode: cameraFacingMode }, config, async (decodedText) => {
-        handleScannedCode(decodedText);
-      }, (error) => {});
+      try {
+        if (html5QrCode) return;
+        if(typeof Html5Qrcode === 'undefined') return;
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+        
+        html5QrCode.start({ facingMode: cameraFacingMode }, config, async (decodedText) => {
+          handleScannedCode(decodedText);
+        }, (error) => {});
+      } catch(e) {}
     }
 
     function stopScanner() {
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
+      try {
+        if (html5QrCode && typeof html5QrCode.stop === 'function') {
+          html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
+        } else {
+          html5QrCode = null;
+        }
+      } catch(e) {
+        html5QrCode = null;
       }
     }
 
@@ -669,7 +691,7 @@
     }
 
     function resetScanner() {
-      Swal.fire({ title: 'Scanner Direset', icon: 'info', timer: 1000, showConfirmButton: false });
+      if(typeof Swal !== 'undefined') Swal.fire({ title: 'Scanner Direset', icon: 'info', timer: 1000, showConfirmButton: false });
     }
 
     async function handleScannedCode(qrString) {
@@ -692,73 +714,76 @@
     async function loadPesertaDropdownCard() {
       try {
         const res = await callBackend('getPeserta');
-        globalPesertaCache = res;
+        globalPesertaCache = res || [];
         const select = document.getElementById('cardPesertaSelect');
-        select.innerHTML = '<option value="">-- Pilih Peserta --</option>' + res.map(p => `<option value="${p['Nomor Anggota']}">${p['Nama Lengkap']} (${p['Nomor Anggota']})</option>`).join('');
+        select.innerHTML = '<option value="">-- Pilih Peserta --</option>' + globalPesertaCache.map(p => `<option value="${p['Nomor Anggota']}">${p['Nama Lengkap']} (${p['Nomor Anggota']})</option>`).join('');
       } catch(e) {}
     }
 
     function renderCardPreview() {
-      const selectedNo = document.getElementById('cardPesertaSelect').value;
-      const topPos = document.getElementById('textTopPos').value;
-      document.getElementById('textTopVal').innerText = topPos + '%';
-      document.getElementById('cardTextOverlay').style.top = topPos + '%';
+      try {
+        const selectedNo = document.getElementById('cardPesertaSelect').value;
+        const topPos = document.getElementById('textTopPos').value;
+        document.getElementById('textTopVal').innerText = topPos + '%';
+        document.getElementById('cardTextOverlay').style.top = topPos + '%';
 
-      const nameEl = document.getElementById('cardNamePreview');
-      nameEl.style.fontFamily = document.getElementById('fontNameFamily').value;
-      nameEl.style.fontSize = document.getElementById('fontNameSize').value + 'px';
-      nameEl.style.color = document.getElementById('fontNameColor').value;
+        const nameEl = document.getElementById('cardNamePreview');
+        nameEl.style.fontFamily = document.getElementById('fontNameFamily').value;
+        nameEl.style.fontSize = document.getElementById('fontNameSize').value + 'px';
+        nameEl.style.color = document.getElementById('fontNameColor').value;
 
-      const noEl = document.getElementById('cardNoPreview');
-      noEl.style.fontFamily = document.getElementById('fontNoFamily').value;
-      noEl.style.fontSize = document.getElementById('fontNoSize').value + 'px';
-      noEl.style.color = document.getElementById('fontNoColor').value;
+        const noEl = document.getElementById('cardNoPreview');
+        noEl.style.fontFamily = document.getElementById('fontNoFamily').value;
+        noEl.style.fontSize = document.getElementById('fontNoSize').value + 'px';
+        noEl.style.color = document.getElementById('fontNoColor').value;
 
-      const cabangEl = document.getElementById('cardCabangPreview');
-      cabangEl.style.fontFamily = document.getElementById('fontCabangFamily').value;
-      cabangEl.style.fontSize = document.getElementById('fontCabangSize').value + 'px';
-      cabangEl.style.color = document.getElementById('fontCabangColor').value;
+        const cabangEl = document.getElementById('cardCabangPreview');
+        cabangEl.style.fontFamily = document.getElementById('fontCabangFamily').value;
+        cabangEl.style.fontSize = document.getElementById('fontCabangSize').value + 'px';
+        cabangEl.style.color = document.getElementById('fontCabangColor').value;
 
-      if(selectedNo && globalPesertaCache.length) {
-        const peserta = globalPesertaCache.find(p => p['Nomor Anggota'] === selectedNo);
-        if(peserta) {
-          nameEl.innerText = peserta['Nama Lengkap'];
-          noEl.innerText = peserta['Nomor Anggota'];
-          cabangEl.innerText = "Cabang: " + peserta['Cabang'];
+        if(selectedNo && globalPesertaCache.length) {
+          const peserta = globalPesertaCache.find(p => p['Nomor Anggota'] === selectedNo);
+          if(peserta) {
+            nameEl.innerText = peserta['Nama Lengkap'];
+            noEl.innerText = peserta['Nomor Anggota'];
+            cabangEl.innerText = "Cabang: " + peserta['Cabang'];
 
-          const qrContainer = document.getElementById('cardQrCode');
-          qrContainer.innerHTML = '';
-          new QRCode(qrContainer, { text: peserta['QR String'] || peserta['Nomor Anggota'], width: 90, height: 90 });
+            const qrContainer = document.getElementById('cardQrCode');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, { text: peserta['QR String'] || peserta['Nomor Anggota'], width: 90, height: 90 });
+          }
         }
-      }
-
-      saveCardStateToLocal();
+        saveCardStateToLocal();
+      } catch(e) {}
     }
 
     function saveCardStateToLocal() {
-      const state = {
-        selectedNo: document.getElementById('cardPesertaSelect').value,
-        topPos: document.getElementById('textTopPos').value,
-        fontNameFamily: document.getElementById('fontNameFamily').value,
-        fontNameSize: document.getElementById('fontNameSize').value,
-        fontNameColor: document.getElementById('fontNameColor').value,
-        fontNoFamily: document.getElementById('fontNoFamily').value,
-        fontNoSize: document.getElementById('fontNoSize').value,
-        fontNoColor: document.getElementById('fontNoColor').value,
-        fontCabangFamily: document.getElementById('fontCabangFamily').value,
-        fontCabangSize: document.getElementById('fontCabangSize').value,
-        fontCabangColor: document.getElementById('fontCabangColor').value,
-        bgUrl: document.getElementById('cardBgUrlInput').value,
-        bgImage: document.getElementById('cardPreviewContainer').style.backgroundImage,
-        bgColor: document.getElementById('cardPreviewContainer').style.backgroundColor
-      };
-      localStorage.setItem('AKP2I_CARD_STATE', JSON.stringify(state));
+      try {
+        const state = {
+          selectedNo: document.getElementById('cardPesertaSelect').value,
+          topPos: document.getElementById('textTopPos').value,
+          fontNameFamily: document.getElementById('fontNameFamily').value,
+          fontNameSize: document.getElementById('fontNameSize').value,
+          fontNameColor: document.getElementById('fontNameColor').value,
+          fontNoFamily: document.getElementById('fontNoFamily').value,
+          fontNoSize: document.getElementById('fontNoSize').value,
+          fontNoColor: document.getElementById('fontNoColor').value,
+          fontCabangFamily: document.getElementById('fontCabangFamily').value,
+          fontCabangSize: document.getElementById('fontCabangSize').value,
+          fontCabangColor: document.getElementById('fontCabangColor').value,
+          bgUrl: document.getElementById('cardBgUrlInput').value,
+          bgImage: document.getElementById('cardPreviewContainer').style.backgroundImage,
+          bgColor: document.getElementById('cardPreviewContainer').style.backgroundColor
+        };
+        localStorage.setItem('AKP2I_CARD_STATE', JSON.stringify(state));
+      } catch(e) {}
     }
 
     function loadSavedCardState() {
-      const saved = localStorage.getItem('AKP2I_CARD_STATE');
-      if(!saved) return;
       try {
+        const saved = localStorage.getItem('AKP2I_CARD_STATE');
+        if(!saved) return;
         const state = JSON.parse(saved);
         if(state.topPos) document.getElementById('textTopPos').value = state.topPos;
         if(state.fontNameFamily) document.getElementById('fontNameFamily').value = state.fontNameFamily;
@@ -772,12 +797,7 @@
         if(state.fontCabangColor) document.getElementById('fontCabangColor').value = state.fontCabangColor;
         if(state.bgUrl) {
           document.getElementById('cardBgUrlInput').value = state.bgUrl;
-        }
-        if(state.bgImage && state.bgImage !== 'none') {
-          document.getElementById('cardPreviewContainer').style.backgroundImage = state.bgImage;
-        }
-        if(state.bgColor) {
-          document.getElementById('cardPreviewContainer').style.backgroundColor = state.bgColor;
+          handleCardBgUrl(document.getElementById('cardBgUrlInput'));
         }
       } catch(e) {}
     }
@@ -786,7 +806,6 @@
       const rawUrl = input.value.trim();
       const container = document.getElementById('cardPreviewContainer');
       if(rawUrl) {
-        // Menggunakan Image Proxy publik weserv.nl untuk otomatis melewati proteksi CORS dari URL manapun
         const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl.replace(/^https?:\/\//, ''))}`;
         container.style.backgroundImage = `url('${proxiedUrl}')`;
         container.style.backgroundColor = 'transparent';
@@ -797,10 +816,11 @@
       saveCardStateToLocal();
     }
 
-    // Fungsi unduh kartu yang sepenuhnya aman dari error tainted canvas & CORS
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
-      Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      if(typeof Swal !== 'undefined') {
+        Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      }
       
       try {
         const canvas = await html2canvas(cardElement, { 
@@ -813,10 +833,8 @@
         link.download = 'Kartu-Peserta-AKP2I.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-        Swal.close();
+        if(typeof Swal !== 'undefined') Swal.close();
       } catch(err) {
-        console.error("Card Download Error:", err);
-        // Fallback otomatis jika proxy gagal memuat: unduh kartu tanpa background gambar (warna putih bersih)
         try {
           const originalBg = cardElement.style.backgroundImage;
           cardElement.style.backgroundImage = 'none';
@@ -829,9 +847,13 @@
           link.click();
           
           cardElement.style.backgroundImage = originalBg;
-          Swal.fire('Berhasil (Tanpa Background)', 'Gambar background gagal dimuat karena proteksi server luar, kartu berhasil diunduh tanpa background.', 'success');
+          if(typeof Swal !== 'undefined') {
+            Swal.fire('Berhasil (Tanpa Background)', 'Gambar background dilewati karena proteksi server luar, kartu berhasil diunduh.', 'success');
+          }
         } catch(fallbackErr) {
-          Swal.fire('Gagal', 'Terjadi kesalahan total saat mengunduh kartu.', 'error');
+          if(typeof Swal !== 'undefined') {
+            Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
+          }
         }
       }
     }
@@ -871,7 +893,7 @@
     function saveGeneralSettings() {
       const appName = document.getElementById('settingAppName').value;
       document.getElementById('appTitleHeader').innerText = appName;
-      Swal.fire('Berhasil', 'Pengaturan aplikasi diperbarui!', 'success');
+      if(typeof Swal !== 'undefined') Swal.fire('Berhasil', 'Pengaturan aplikasi diperbarui!', 'success');
     }
   </script>
 </body>
