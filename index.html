@@ -386,10 +386,13 @@
       try {
         const lastView = localStorage.getItem('AKP2I_LAST_VIEW') || 'dashboard';
         switchView(lastView);
-        loadSavedCardState();
       } catch(e) {
         switchView('dashboard');
       }
+
+      try {
+        loadSavedCardState();
+      } catch(e) {}
     });
 
     function switchView(targetView) {
@@ -410,18 +413,15 @@
 
         localStorage.setItem('AKP2I_LAST_VIEW', targetView);
 
-        if(targetView === 'scanner') {
-          setTimeout(initScanner, 200);
-        } else {
-          stopScanner();
-        }
+        if(targetView === 'scanner') initScanner();
+        else stopScanner();
 
         if(targetView === 'dashboard') loadDashboard();
         if(targetView === 'generator') loadPesertaData();
         if(targetView === 'scanner') loadAbsensiData();
         if(targetView === 'card') loadPesertaDropdownCard();
-      } catch(err) {
-        console.error("Navigation Error:", err);
+      } catch(e) {
+        console.error("SwitchView Error:", e);
       }
     }
 
@@ -439,7 +439,6 @@
     }
 
     async function initSheetDB() {
-      if(typeof Swal === 'undefined') return alert('Library SweetAlert belum termuat.');
       Swal.showLoading();
       try {
         const res = await callBackend('initDB');
@@ -451,8 +450,10 @@
 
     function toggleSertifikasi(selectElem) {
       const container = document.getElementById('sertifikasiContainer');
-      if(selectElem.value === 'Utama') container.classList.remove('hidden');
-      else container.classList.add('hidden');
+      if(container) {
+        if(selectElem.value === 'Utama') container.classList.remove('hidden');
+        else container.classList.add('hidden');
+      }
     }
 
     function toggleSertifikasiSwal(selectId, containerId) {
@@ -473,23 +474,27 @@
         document.getElementById('statBelum').innerText = res.summary?.belumHadir || 0;
 
         const pTable = document.getElementById('dashPesertaTable');
-        pTable.innerHTML = res.peserta && res.peserta.length ? res.peserta.map(p => `
-          <tr>
-            <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
-            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Lunas'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${p['Status'] || ''}</span></td>
-          </tr>
-        `).join('') : `<tr><td colspan="4" class="py-4 text-center text-slate-400">Belum ada peserta.</td></tr>`;
+        if(pTable) {
+          pTable.innerHTML = res.peserta && res.peserta.length ? res.peserta.map(p => `
+            <tr>
+              <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Lunas'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${p['Status'] || ''}</span></td>
+            </tr>
+          `).join('') : `<tr><td colspan="4" class="py-4 text-center text-slate-400">Belum ada peserta.</td></tr>`;
+        }
 
         const aTable = document.getElementById('dashAbsensiTable');
-        aTable.innerHTML = res.absensi && res.absensi.length ? res.absensi.map(a => `
-          <tr>
-            <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nama Lengkap"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${a["Cabang"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"] || ''}</td>
-          </tr>
-        `).join('') : `<tr><td colspan="3" class="py-4 text-center text-slate-400">Belum ada data scan.</td></tr>`;
+        if(aTable) {
+          aTable.innerHTML = res.absensi && res.absensi.length ? res.absensi.map(a => `
+            <tr>
+              <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nama Lengkap"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${a["Cabang"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"] || ''}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="3" class="py-4 text-center text-slate-400">Belum ada data scan.</td></tr>`;
+        }
       } catch(e) {}
     }
 
@@ -504,18 +509,18 @@
         noInput: cleanNo,
         cabang: form.cabang.value,
         jenis: form.jenis.value,
-        sertifikasi: form.jenis.value === 'Utama' ? form.querySelector('input[name="sertifikasi"]:checked').value : '',
+        sertifikasi: form.jenis.value === 'Utama' ? (form.querySelector('input[name="sertifikasi"]:checked')?.value || 'C') : '',
         status: form.status.value
       };
 
-      if(typeof Swal !== 'undefined') Swal.showLoading();
+      Swal.showLoading();
       try {
         const res = await callBackend('savePeserta', formData);
-        if(typeof Swal !== 'undefined') Swal.fire('Berhasil!', res.message, 'success');
+        Swal.fire('Berhasil!', res.message, 'success');
         form.reset();
         loadPesertaData();
       } catch(err) {
-        if(typeof Swal !== 'undefined') Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
+        Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
       }
     }
 
@@ -607,22 +612,24 @@
         const res = await callBackend('getPeserta');
         globalPesertaCache = res || [];
         const tbody = document.getElementById('pesertaTableBody');
-        tbody.innerHTML = globalPesertaCache.length ? globalPesertaCache.map(p => `
-          <tr class="hover:bg-slate-50">
-            <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${p.ID || ''}"></td>
-            <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${p["Jenis Anggota"] || ''}</td>
-            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">${p['Status'] || ''}</span></td>
-            <td class="py-2.5 px-3 text-center">
-              <button onclick="downloadSingleQR('${p["QR String"] || p["Nomor Anggota"]}', '${p["Nama Lengkap"]}')" class="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs hover:bg-primary/20"><i class="fa-solid fa-qrcode"></i></button>
-            </td>
-            <td class="py-2.5 px-3 text-center space-x-1">
-              <button onclick="editPeserta('${p.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs"><i class="fa-solid fa-pen"></i></button>
-            </td>
-          </tr>
-        `).join('') : `<tr><td colspan="8" class="py-4 text-center text-slate-400">Belum ada data peserta.</td></tr>`;
+        if(tbody) {
+          tbody.innerHTML = res && res.length ? res.map(p => `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${p.ID || ''}"></td>
+              <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${p["Jenis Anggota"] || ''}</td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">${p['Status'] || ''}</span></td>
+              <td class="py-2.5 px-3 text-center">
+                <button onclick="downloadSingleQR('${p["QR String"] || p["Nomor Anggota"]}', '${p["Nama Lengkap"]}')" class="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs hover:bg-primary/20"><i class="fa-solid fa-qrcode"></i></button>
+              </td>
+              <td class="py-2.5 px-3 text-center space-x-1">
+                <button onclick="editPeserta('${p.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs"><i class="fa-solid fa-pen"></i></button>
+              </td>
+            </tr>
+          `).join('') : `<tr><td colspan="8" class="py-4 text-center text-slate-400">Belum ada data peserta.</td></tr>`;
+        }
       } catch(e) {}
     }
 
@@ -630,15 +637,17 @@
       try {
         const res = await callBackend('getAbsensi');
         const tbody = document.getElementById('absensiTableBody');
-        tbody.innerHTML = res && res.length ? res.map(a => `
-          <tr class="hover:bg-slate-50">
-            <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${a["ID Absen"] || ''}"></td>
-            <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nomor Anggota"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-800">${a["Nama Lengkap"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-600">${a["Cabang"] || ''}</td>
-            <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"] || ''}</td>
-          </tr>
-        `).join('') : `<tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada data absensi.</td></tr>`;
+        if(tbody) {
+          tbody.innerHTML = res && res.length ? res.map(a => `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-2"><input type="checkbox" class="row-checkbox" value="${a["ID Absen"] || ''}"></td>
+              <td class="py-2.5 px-3 font-medium text-slate-800">${a["Nomor Anggota"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-800">${a["Nama Lengkap"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-600">${a["Cabang"] || ''}</td>
+              <td class="py-2.5 px-3 text-slate-500">${a["Waktu Scan"] || ''}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada data absensi.</td></tr>`;
+        }
       } catch(e) {}
     }
 
@@ -660,27 +669,22 @@
     }
 
     function initScanner() {
+      if (html5QrCode) return;
       try {
-        if (html5QrCode) return;
-        if(typeof Html5Qrcode === 'undefined') return;
         html5QrCode = new Html5Qrcode("reader");
         const config = { fps: 10, qrbox: { width: 220, height: 220 } };
         
         html5QrCode.start({ facingMode: cameraFacingMode }, config, async (decodedText) => {
           handleScannedCode(decodedText);
         }, (error) => {});
-      } catch(e) {}
+      } catch(e) {
+        console.error("Scanner Init Error:", e);
+      }
     }
 
     function stopScanner() {
-      try {
-        if (html5QrCode && typeof html5QrCode.stop === 'function') {
-          html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
-        } else {
-          html5QrCode = null;
-        }
-      } catch(e) {
-        html5QrCode = null;
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
       }
     }
 
@@ -691,7 +695,7 @@
     }
 
     function resetScanner() {
-      if(typeof Swal !== 'undefined') Swal.fire({ title: 'Scanner Direset', icon: 'info', timer: 1000, showConfirmButton: false });
+      Swal.fire({ title: 'Scanner Direset', icon: 'info', timer: 1000, showConfirmButton: false });
     }
 
     async function handleScannedCode(qrString) {
@@ -716,44 +720,58 @@
         const res = await callBackend('getPeserta');
         globalPesertaCache = res || [];
         const select = document.getElementById('cardPesertaSelect');
-        select.innerHTML = '<option value="">-- Pilih Peserta --</option>' + globalPesertaCache.map(p => `<option value="${p['Nomor Anggota']}">${p['Nama Lengkap']} (${p['Nomor Anggota']})</option>`).join('');
+        if(select) {
+          select.innerHTML = '<option value="">-- Pilih Peserta --</option>' + (res || []).map(p => `<option value="${p['Nomor Anggota']}">${p['Nama Lengkap']} (${p['Nomor Anggota']})</option>`).join('');
+        }
       } catch(e) {}
     }
 
     function renderCardPreview() {
       try {
-        const selectedNo = document.getElementById('cardPesertaSelect').value;
-        const topPos = document.getElementById('textTopPos').value;
-        document.getElementById('textTopVal').innerText = topPos + '%';
-        document.getElementById('cardTextOverlay').style.top = topPos + '%';
+        const selectedNo = document.getElementById('cardPesertaSelect')?.value;
+        const topPos = document.getElementById('textTopPos')?.value || 30;
+        const valSpan = document.getElementById('textTopVal');
+        if(valSpan) valSpan.innerText = topPos + '%';
+        
+        const textOverlay = document.getElementById('cardTextOverlay');
+        if(textOverlay) textOverlay.style.top = topPos + '%';
 
         const nameEl = document.getElementById('cardNamePreview');
-        nameEl.style.fontFamily = document.getElementById('fontNameFamily').value;
-        nameEl.style.fontSize = document.getElementById('fontNameSize').value + 'px';
-        nameEl.style.color = document.getElementById('fontNameColor').value;
+        if(nameEl) {
+          nameEl.style.fontFamily = document.getElementById('fontNameFamily')?.value || 'Sans';
+          nameEl.style.fontSize = (document.getElementById('fontNameSize')?.value || 18) + 'px';
+          nameEl.style.color = document.getElementById('fontNameColor')?.value || '#000000';
+        }
 
         const noEl = document.getElementById('cardNoPreview');
-        noEl.style.fontFamily = document.getElementById('fontNoFamily').value;
-        noEl.style.fontSize = document.getElementById('fontNoSize').value + 'px';
-        noEl.style.color = document.getElementById('fontNoColor').value;
+        if(noEl) {
+          noEl.style.fontFamily = document.getElementById('fontNoFamily')?.value || 'Sans';
+          noEl.style.fontSize = (document.getElementById('fontNoSize')?.value || 14) + 'px';
+          noEl.style.color = document.getElementById('fontNoColor')?.value || '#000000';
+        }
 
         const cabangEl = document.getElementById('cardCabangPreview');
-        cabangEl.style.fontFamily = document.getElementById('fontCabangFamily').value;
-        cabangEl.style.fontSize = document.getElementById('fontCabangSize').value + 'px';
-        cabangEl.style.color = document.getElementById('fontCabangColor').value;
+        if(cabangEl) {
+          cabangEl.style.fontFamily = document.getElementById('fontCabangFamily')?.value || 'Sans';
+          cabangEl.style.fontSize = (document.getElementById('fontCabangSize')?.value || 14) + 'px';
+          cabangEl.style.color = document.getElementById('fontCabangColor')?.value || '#000000';
+        }
 
         if(selectedNo && globalPesertaCache.length) {
           const peserta = globalPesertaCache.find(p => p['Nomor Anggota'] === selectedNo);
           if(peserta) {
-            nameEl.innerText = peserta['Nama Lengkap'];
-            noEl.innerText = peserta['Nomor Anggota'];
-            cabangEl.innerText = "Cabang: " + peserta['Cabang'];
+            if(nameEl) nameEl.innerText = peserta['Nama Lengkap'];
+            if(noEl) noEl.innerText = peserta['Nomor Anggota'];
+            if(cabangEl) cabangEl.innerText = "Cabang: " + peserta['Cabang'];
 
             const qrContainer = document.getElementById('cardQrCode');
-            qrContainer.innerHTML = '';
-            new QRCode(qrContainer, { text: peserta['QR String'] || peserta['Nomor Anggota'], width: 90, height: 90 });
+            if(qrContainer) {
+              qrContainer.innerHTML = '';
+              new QRCode(qrContainer, { text: peserta['QR String'] || peserta['Nomor Anggota'], width: 90, height: 90 });
+            }
           }
         }
+
         saveCardStateToLocal();
       } catch(e) {}
     }
@@ -761,20 +779,20 @@
     function saveCardStateToLocal() {
       try {
         const state = {
-          selectedNo: document.getElementById('cardPesertaSelect').value,
-          topPos: document.getElementById('textTopPos').value,
-          fontNameFamily: document.getElementById('fontNameFamily').value,
-          fontNameSize: document.getElementById('fontNameSize').value,
-          fontNameColor: document.getElementById('fontNameColor').value,
-          fontNoFamily: document.getElementById('fontNoFamily').value,
-          fontNoSize: document.getElementById('fontNoSize').value,
-          fontNoColor: document.getElementById('fontNoColor').value,
-          fontCabangFamily: document.getElementById('fontCabangFamily').value,
-          fontCabangSize: document.getElementById('fontCabangSize').value,
-          fontCabangColor: document.getElementById('fontCabangColor').value,
-          bgUrl: document.getElementById('cardBgUrlInput').value,
-          bgImage: document.getElementById('cardPreviewContainer').style.backgroundImage,
-          bgColor: document.getElementById('cardPreviewContainer').style.backgroundColor
+          selectedNo: document.getElementById('cardPesertaSelect')?.value,
+          topPos: document.getElementById('textTopPos')?.value,
+          fontNameFamily: document.getElementById('fontNameFamily')?.value,
+          fontNameSize: document.getElementById('fontNameSize')?.value,
+          fontNameColor: document.getElementById('fontNameColor')?.value,
+          fontNoFamily: document.getElementById('fontNoFamily')?.value,
+          fontNoSize: document.getElementById('fontNoSize')?.value,
+          fontNoColor: document.getElementById('fontNoColor')?.value,
+          fontCabangFamily: document.getElementById('fontCabangFamily')?.value,
+          fontCabangSize: document.getElementById('fontCabangSize')?.value,
+          fontCabangColor: document.getElementById('fontCabangColor')?.value,
+          bgUrl: document.getElementById('cardBgUrlInput')?.value,
+          bgImage: document.getElementById('cardPreviewContainer')?.style.backgroundImage,
+          bgColor: document.getElementById('cardPreviewContainer')?.style.backgroundColor
         };
         localStorage.setItem('AKP2I_CARD_STATE', JSON.stringify(state));
       } catch(e) {}
@@ -785,17 +803,17 @@
         const saved = localStorage.getItem('AKP2I_CARD_STATE');
         if(!saved) return;
         const state = JSON.parse(saved);
-        if(state.topPos) document.getElementById('textTopPos').value = state.topPos;
-        if(state.fontNameFamily) document.getElementById('fontNameFamily').value = state.fontNameFamily;
-        if(state.fontNameSize) document.getElementById('fontNameSize').value = state.fontNameSize;
-        if(state.fontNameColor) document.getElementById('fontNameColor').value = state.fontNameColor;
-        if(state.fontNoFamily) document.getElementById('fontNoFamily').value = state.fontNoFamily;
-        if(state.fontNoSize) document.getElementById('fontNoSize').value = state.fontNoSize;
-        if(state.fontNoColor) document.getElementById('fontNoColor').value = state.fontNoColor;
-        if(state.fontCabangFamily) document.getElementById('fontCabangFamily').value = state.fontCabangFamily;
-        if(state.fontCabangSize) document.getElementById('fontCabangSize').value = state.fontCabangSize;
-        if(state.fontCabangColor) document.getElementById('fontCabangColor').value = state.fontCabangColor;
-        if(state.bgUrl) {
+        if(state.topPos && document.getElementById('textTopPos')) document.getElementById('textTopPos').value = state.topPos;
+        if(state.fontNameFamily && document.getElementById('fontNameFamily')) document.getElementById('fontNameFamily').value = state.fontNameFamily;
+        if(state.fontNameSize && document.getElementById('fontNameSize')) document.getElementById('fontNameSize').value = state.fontNameSize;
+        if(state.fontNameColor && document.getElementById('fontNameColor')) document.getElementById('fontNameColor').value = state.fontNameColor;
+        if(state.fontNoFamily && document.getElementById('fontNoFamily')) document.getElementById('fontNoFamily').value = state.fontNoFamily;
+        if(state.fontNoSize && document.getElementById('fontNoSize')) document.getElementById('fontNoSize').value = state.fontNoSize;
+        if(state.fontNoColor && document.getElementById('fontNoColor')) document.getElementById('fontNoColor').value = state.fontNoColor;
+        if(state.fontCabangFamily && document.getElementById('fontCabangFamily')) document.getElementById('fontCabangFamily').value = state.fontCabangFamily;
+        if(state.fontCabangSize && document.getElementById('fontCabangSize')) document.getElementById('fontCabangSize').value = state.fontCabangSize;
+        if(state.fontCabangColor && document.getElementById('fontCabangColor')) document.getElementById('fontCabangColor').value = state.fontCabangColor;
+        if(state.bgUrl && document.getElementById('cardBgUrlInput')) {
           document.getElementById('cardBgUrlInput').value = state.bgUrl;
           handleCardBgUrl(document.getElementById('cardBgUrlInput'));
         }
@@ -805,6 +823,7 @@
     function handleCardBgUrl(input) {
       const rawUrl = input.value.trim();
       const container = document.getElementById('cardPreviewContainer');
+      if(!container) return;
       if(rawUrl) {
         const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl.replace(/^https?:\/\//, ''))}`;
         container.style.backgroundImage = `url('${proxiedUrl}')`;
@@ -818,9 +837,8 @@
 
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
-      if(typeof Swal !== 'undefined') {
-        Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-      }
+      if(!cardElement) return;
+      Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
       
       try {
         const canvas = await html2canvas(cardElement, { 
@@ -833,7 +851,7 @@
         link.download = 'Kartu-Peserta-AKP2I.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-        if(typeof Swal !== 'undefined') Swal.close();
+        Swal.close();
       } catch(err) {
         try {
           const originalBg = cardElement.style.backgroundImage;
@@ -847,13 +865,9 @@
           link.click();
           
           cardElement.style.backgroundImage = originalBg;
-          if(typeof Swal !== 'undefined') {
-            Swal.fire('Berhasil (Tanpa Background)', 'Gambar background dilewati karena proteksi server luar, kartu berhasil diunduh.', 'success');
-          }
+          Swal.fire('Berhasil (Tanpa Background)', 'Background gagal dimuat, kartu berhasil diunduh tanpa background.', 'success');
         } catch(fallbackErr) {
-          if(typeof Swal !== 'undefined') {
-            Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
-          }
+          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
         }
       }
     }
@@ -891,9 +905,12 @@
     }
 
     function saveGeneralSettings() {
-      const appName = document.getElementById('settingAppName').value;
-      document.getElementById('appTitleHeader').innerText = appName;
-      if(typeof Swal !== 'undefined') Swal.fire('Berhasil', 'Pengaturan aplikasi diperbarui!', 'success');
+      const appName = document.getElementById('settingAppName')?.value;
+      const titleHeader = document.getElementById('appTitleHeader');
+      if(appName && titleHeader) {
+        titleHeader.innerText = appName;
+        Swal.fire('Berhasil', 'Pengaturan aplikasi diperbarui!', 'success');
+      }
     }
   </script>
 </body>
