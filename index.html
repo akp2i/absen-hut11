@@ -584,7 +584,7 @@
           const noInput = document.getElementById('swalNoInput').value;
           const cabang = document.getElementById('swalCabang').value;
           const jenis = document.getElementById('swalJenis').value;
-          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked'].value : 'C') : '';
+          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
           const status = document.getElementById('swalStatus').value;
 
           if(!nama || !noInput || !cabang) {
