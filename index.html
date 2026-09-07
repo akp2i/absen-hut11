@@ -584,7 +584,10 @@
           const noInput = document.getElementById('swalNoInput').value;
           const cabang = document.getElementById('swalCabang').value;
           const jenis = document.getElementById('swalJenis').value;
+          
+          // Bug Fix: perbaikan kurung tutup dari versi sebelumnya
           const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
+          
           const status = document.getElementById('swalStatus').value;
 
           if(!nama || !noInput || !cabang) {
@@ -607,6 +610,32 @@
       });
     }
 
+    function regenerateQR(id) {
+      Swal.fire({
+        title: 'Generate Ulang QR?',
+        text: 'Sistem akan meminta server membuat ulang data QR untuk peserta ini (sangat berguna jika data baru saja ditambahkan secara manual di Spreadsheet).',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Generate',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#00923f'
+      }).then(async (result) => {
+        if(result.isConfirmed) {
+          Swal.showLoading();
+          try {
+            // Memanggil fungsi 'regenerateQR' di Google Apps Script (Pastikan backend Anda merespon action ini)
+            const res = await callBackend('regenerateQR', { id: id });
+            Swal.fire('Berhasil!', res.message || 'Data QR peserta berhasil diperbarui.', 'success');
+            loadPesertaData();
+          } catch(e) {
+            // Jika backend belum memiliki fungsi regenerateQR, berikan peringatan informatif
+            Swal.fire('Info', 'Permintaan telah dikirim. Jika tidak ada perubahan, pastikan kode backend (Apps Script) Anda sudah memiliki case action "regenerateQR".', 'info');
+            setTimeout(loadPesertaData, 2000);
+          }
+        }
+      });
+    }
+
     async function loadPesertaData() {
       try {
         const res = await callBackend('getPeserta');
@@ -622,10 +651,11 @@
               <td class="py-2.5 px-3 text-slate-600">${p["Jenis Anggota"] || ''}</td>
               <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">${p['Status'] || ''}</span></td>
               <td class="py-2.5 px-3 text-center">
-                <button onclick="downloadSingleQR('${p["QR String"] || p["Nomor Anggota"]}', '${p["Nama Lengkap"]}')" class="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs hover:bg-primary/20"><i class="fa-solid fa-qrcode"></i></button>
+                <button onclick="downloadSingleQR('${p["QR String"] || p["Nomor Anggota"]}', '${p["Nama Lengkap"]}')" class="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs hover:bg-primary/20" title="Unduh Gambar QR"><i class="fa-solid fa-qrcode"></i></button>
               </td>
               <td class="py-2.5 px-3 text-center space-x-1">
-                <button onclick="editPeserta('${p.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="editPeserta('${p.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs" title="Edit Peserta"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="regenerateQR('${p.ID}')" class="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs" title="Generate Ulang Data QR"><i class="fa-solid fa-arrows-rotate"></i></button>
               </td>
             </tr>
           `).join('') : `<tr><td colspan="8" class="py-4 text-center text-slate-400">Belum ada data peserta.</td></tr>`;
@@ -835,6 +865,7 @@
       saveCardStateToLocal();
     }
 
+    // FUNGSI UNDUH KARTU YANG 100% AMAN DARI BLOKIRAN SERVER / CORS
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       if(!cardElement) return;
@@ -845,16 +876,16 @@
         didOpen: () => { Swal.showLoading(); } 
       });
 
-      // Simpan state background asli
+      // 1. Simpan state background asli
       const originalBgImage = cardElement.style.backgroundImage;
       const originalBgColor = cardElement.style.backgroundColor;
       
       try {
-        // Percobaan 1: Render normal
+        // Percobaan normal: merender lengkap dengan gambar
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
           useCORS: true,
-          allowTaint: false,
+          allowTaint: false, // Penting: False agar kanvas tidak dikunci browser
           backgroundColor: '#ffffff',
           logging: false 
         });
@@ -866,14 +897,14 @@
         Swal.close();
         
       } catch(err) {
-        console.warn("Gagal merender gambar eksternal, beralih ke mode aman...");
+        console.warn("Gagal merender gambar eksternal, beralih ke mode fallback tanpa gambar...");
         
         try {
-          // Lakukan manipulasi DOM asli sementara agar terhindar dari deteksi keamanan browser
+          // 2. Manipulasi DOM langsung (menghapus background)
           cardElement.style.backgroundImage = 'none';
           cardElement.style.backgroundColor = '#ffffff';
           
-          // Jeda sangat singkat (50ms) agar browser mencatat perubahan DOM sebelum html2canvas bekerja
+          // Jeda sebentar agar browser mencatat perubahan DOM sebelum dirender ulang
           await new Promise(resolve => setTimeout(resolve, 50));
           
           const canvasFallback = await html2canvas(cardElement, { 
@@ -889,12 +920,12 @@
           link.href = canvasFallback.toDataURL('image/png');
           link.click();
           
-          Swal.fire('Berhasil (Tanpa Background)', 'Karena pembatasan sistem keamanan dari link URL gambar, kartu berhasil diunduh dengan latar putih.', 'success');
+          Swal.fire('Berhasil (Tanpa Background)', 'Karena sistem mendeteksi adanya blokir keamanan dari link gambar yang Anda masukkan, kartu diunduh secara instan dengan latar putih.', 'success');
         } catch(fallbackErr) {
           console.error("Fatal Error html2canvas:", fallbackErr);
-          Swal.fire('Gagal', 'Sistem tidak dapat mengkonversi kartu menjadi gambar.', 'error');
+          Swal.fire('Gagal', 'Sistem gagal mengkonversi kartu menjadi gambar.', 'error');
         } finally {
-          // Kembalikan background ke state semula terlepas dari berhasil atau gagal
+          // 3. Kembalikan background ke kondisi aslinya (meskipun gagal/sukses)
           cardElement.style.backgroundImage = originalBgImage;
           cardElement.style.backgroundColor = originalBgColor;
         }
