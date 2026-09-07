@@ -78,7 +78,7 @@
               <tr class="border-b border-slate-200 text-slate-500">
                 <th class="py-2 px-3">Nama Lengkap</th>
                 <th class="py-2 px-3">Nomor Anggota</th>
-                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Cabang/Instansi</th>
                 <th class="py-2 px-3">Status</th>
               </tr>
             </thead>
@@ -96,7 +96,7 @@
             <thead>
               <tr class="border-b border-slate-200 text-slate-500">
                 <th class="py-2 px-3">Nama</th>
-                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Cabang/Instansi</th>
                 <th class="py-2 px-3">Waktu Scan</th>
               </tr>
             </thead>
@@ -138,7 +138,7 @@
                 <th class="py-2 px-2 w-8"><input type="checkbox" onchange="toggleSelectAll(this, 'absensiTableBody')"></th>
                 <th class="py-2 px-3">No. Anggota</th>
                 <th class="py-2 px-3">Nama Lengkap</th>
-                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Cabang/Instansi</th>
                 <th class="py-2 px-3">Waktu Scan</th>
               </tr>
             </thead>
@@ -156,20 +156,43 @@
 
       <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <h3 class="font-bold text-sm text-slate-800 mb-4"><i class="fa-solid fa-user-plus text-primary mr-2"></i>Formulir Data Peserta</h3>
+        
         <form id="pesertaForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-              <input type="text" id="inputNama" name="nama" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+          
+          <!-- URUTAN 1: STATUS KEANGGOTAAN -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Status Pendaftaran</label>
+            <select name="status" id="inputStatus" onchange="toggleTipePeserta(this.value)" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary bg-white">
+              <option value="Anggota">Anggota AKP2I</option>
+              <option value="Tamu Undangan">Tamu Undangan</option>
+            </select>
+          </div>
+
+          <!-- URUTAN 2: NAMA LENGKAP -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+            <input type="text" id="inputNama" name="nama" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+          </div>
+
+          <!-- FIELDS KHUSUS TAMU UNDANGAN (Hidden secara default) -->
+          <div id="tamuFields" class="hidden animate-fade-in border-l-2 border-primary pl-3">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Asal Instansi</label>
+            <input type="text" id="inputInstansi" name="asalInstansi" placeholder="Contoh: Kementerian Keuangan / Umum" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+          </div>
+
+          <!-- FIELDS KHUSUS ANGGOTA AKP2I -->
+          <div id="anggotaFields" class="space-y-4 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Input (Angka Saja)</label>
+                <input type="number" id="inputNo" name="noInput" placeholder="Contoh: 1234" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Cabang</label>
+                <input type="text" id="inputCabang" name="cabang" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
+              </div>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Input (Angka Saja)</label>
-              <input type="number" id="inputNo" name="noInput" placeholder="Contoh: 1234" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Cabang</label>
-              <input type="text" id="inputCabang" name="cabang" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary">
-            </div>
+
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Anggota</label>
               <select name="jenis" id="jenisAnggotaSelect" onchange="toggleSertifikasi(this)" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary bg-white">
@@ -179,24 +202,15 @@
                 <option value="Kehormatan">Kehormatan</option>
               </select>
             </div>
-          </div>
 
-          <div id="sertifikasiContainer" class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <label class="block text-xs font-semibold text-slate-600 mb-2">Sertifikasi (Khusus Anggota Utama)</label>
-            <div class="flex gap-6">
-              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="A" class="text-primary focus:ring-primary"> A</label>
-              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="B" class="text-primary focus:ring-primary"> B</label>
-              <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="C" checked class="text-primary focus:ring-primary"> C</label>
+            <div id="sertifikasiContainer" class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <label class="block text-xs font-semibold text-slate-600 mb-2">Sertifikasi (Khusus Anggota Utama)</label>
+              <div class="flex gap-6">
+                <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="A" class="text-primary focus:ring-primary"> A</label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="B" class="text-primary focus:ring-primary"> B</label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="sertifikasi" value="C" checked class="text-primary focus:ring-primary"> C</label>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Status Keanggotaan / Undangan</label>
-            <select name="status" id="inputStatus" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary bg-white">
-              <option value="Lunas">Lunas</option>
-              <option value="Belum Lunas">Belum Lunas</option>
-              <option value="Tamu Undangan">Tamu Undangan</option>
-            </select>
           </div>
 
           <button type="submit" class="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primaryHover transition shadow-md shadow-primary/20">Simpan & Generate QR</button>
@@ -218,7 +232,7 @@
                 <th class="py-2 px-2 w-8"><input type="checkbox" onchange="toggleSelectAll(this, 'pesertaTableBody')"></th>
                 <th class="py-2 px-3">Nama</th>
                 <th class="py-2 px-3">No. Anggota</th>
-                <th class="py-2 px-3">Cabang</th>
+                <th class="py-2 px-3">Cabang / Instansi</th>
                 <th class="py-2 px-3">Jenis</th>
                 <th class="py-2 px-3">Status</th>
                 <th class="py-2 px-3 text-center">QR Code</th>
@@ -248,7 +262,6 @@
             </select>
           </div>
 
-          <!-- Kustomisasi Nama -->
           <div class="border-t pt-3 space-y-2">
             <p class="text-xs font-bold text-slate-700">Teks Nama</p>
             <div class="grid grid-cols-3 gap-2">
@@ -263,9 +276,8 @@
             </div>
           </div>
 
-          <!-- Kustomisasi No Anggota -->
           <div class="border-t pt-3 space-y-2">
-            <p class="text-xs font-bold text-slate-700">Nomor Anggota</p>
+            <p class="text-xs font-bold text-slate-700">Nomor Anggota / ID</p>
             <div class="grid grid-cols-3 gap-2">
               <select id="fontNoFamily" onchange="renderCardPreview()" class="px-2 py-1.5 border rounded-lg text-xs bg-white">
                 <option value="Plus Jakarta Sans">Sans</option>
@@ -277,9 +289,8 @@
             </div>
           </div>
 
-          <!-- Kustomisasi Cabang -->
           <div class="border-t pt-3 space-y-2">
-            <p class="text-xs font-bold text-slate-700">Cabang</p>
+            <p class="text-xs font-bold text-slate-700">Cabang / Instansi</p>
             <div class="grid grid-cols-3 gap-2">
               <select id="fontCabangFamily" onchange="renderCardPreview()" class="px-2 py-1.5 border rounded-lg text-xs bg-white">
                 <option value="Plus Jakarta Sans">Sans</option>
@@ -291,7 +302,6 @@
             </div>
           </div>
 
-          <!-- URL Background Kartu (Opsional) -->
           <div class="border-t pt-3 space-y-1">
             <label class="block text-xs font-semibold text-slate-600">URL Background Kartu (Opsional)</label>
             <input type="url" id="cardBgUrlInput" placeholder="Kosongkan jika tanpa gambar" oninput="handleCardBgUrl(this)" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-primary">
@@ -311,14 +321,11 @@
 
         <div class="md:col-span-2 bg-slate-100 rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center min-h-[360px]">
           <div id="cardPreviewContainer" class="relative w-[300px] h-[480px] bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 bg-cover bg-center" style="background-color: #ffffff;">
-            
             <div id="cardTextOverlay" class="absolute w-full px-4 text-center transition-all duration-100" style="top: 30%;">
               <h3 id="cardNamePreview" class="font-bold drop-shadow-sm">NAMA PESERTA</h3>
               <p id="cardNoPreview" class="font-semibold mt-1">KA-0000/AU.C/AKP2I</p>
               <p id="cardCabangPreview" class="mt-1">Cabang Jakarta</p>
             </div>
-
-            <!-- QR Code Center Bottom -->
             <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white p-2 rounded-xl shadow-md border border-slate-100">
               <div id="cardQrCode" class="w-24 h-24 flex items-center justify-center"></div>
             </div>
@@ -375,6 +382,11 @@
   </nav>
 
   <!-- JAVASCRIPT LOGIC -->
+  <style>
+    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqUv2-BABFA-hFJrpXG36lZ0kAg20vUKLuUWA6yd7n-VsuFGcvpw_S1SoBmRbrz7P2/exec";
 
@@ -448,11 +460,40 @@
       }
     }
 
+    // Fungsi Toggle Input Pendaftaran Berdasarkan Status
+    function toggleTipePeserta(statusVal) {
+      const anggotaGroup = document.getElementById('anggotaFields');
+      const tamuGroup = document.getElementById('tamuFields');
+      
+      if(statusVal === 'Tamu Undangan') {
+        anggotaGroup.classList.add('hidden');
+        tamuGroup.classList.remove('hidden');
+      } else {
+        anggotaGroup.classList.remove('hidden');
+        tamuGroup.classList.add('hidden');
+        toggleSertifikasi(document.getElementById('jenisAnggotaSelect'));
+      }
+    }
+
     function toggleSertifikasi(selectElem) {
       const container = document.getElementById('sertifikasiContainer');
       if(container) {
         if(selectElem.value === 'Utama') container.classList.remove('hidden');
         else container.classList.add('hidden');
+      }
+    }
+
+    // Fungsi Toggle untuk Modal Edit Swal
+    function toggleTipePesertaSwal(val) {
+      const a = document.getElementById('swalAnggotaFields');
+      const t = document.getElementById('swalTamuFields');
+      if(val === 'Tamu Undangan') {
+        a.classList.add('hidden');
+        t.classList.remove('hidden');
+      } else {
+        a.classList.remove('hidden');
+        t.classList.add('hidden');
+        toggleSertifikasiSwal('swalJenis', 'swalSertifikasiContainer');
       }
     }
 
@@ -480,7 +521,7 @@
               <td class="py-2.5 px-3 font-medium text-slate-800">${p["Nama Lengkap"] || ''}</td>
               <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
               <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
-              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Lunas'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${p['Status'] || ''}</span></td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Anggota'?'bg-emerald-50 text-emerald-600':'bg-blue-50 text-blue-600'}">${p['Status'] || ''}</span></td>
             </tr>
           `).join('') : `<tr><td colspan="4" class="py-4 text-center text-slate-400">Belum ada peserta.</td></tr>`;
         }
@@ -501,23 +542,49 @@
     async function handleFormSubmit(e) {
       e.preventDefault();
       const form = e.target;
-      const rawNo = form.noInput.value;
-      const cleanNo = rawNo.includes('/') ? rawNo.split('/')[0].replace('KA-', '') : rawNo;
+      const status = form.status.value;
+      const nama = form.nama.value;
 
-      const formData = {
-        nama: form.nama.value,
-        noInput: cleanNo,
-        cabang: form.cabang.value,
-        jenis: form.jenis.value,
-        sertifikasi: form.jenis.value === 'Utama' ? (form.querySelector('input[name="sertifikasi"]:checked')?.value || 'C') : '',
-        status: form.status.value
-      };
+      if(!nama) return Swal.fire('Peringatan', 'Nama Lengkap wajib diisi!', 'warning');
+
+      let formData = {};
+
+      if(status === 'Anggota') {
+        const rawNo = form.noInput.value;
+        const cabang = form.cabang.value;
+        
+        if(!rawNo || !cabang) return Swal.fire('Peringatan', 'Nomor Input dan Cabang wajib diisi untuk Anggota', 'warning');
+        const cleanNo = rawNo.includes('/') ? rawNo.split('/')[0].replace('KA-', '') : rawNo;
+
+        formData = {
+          nama: nama,
+          noInput: cleanNo,
+          cabang: cabang,
+          jenis: form.jenis.value,
+          sertifikasi: form.jenis.value === 'Utama' ? (form.querySelector('input[name="sertifikasi"]:checked')?.value || 'C') : '',
+          status: status
+        };
+      } else {
+        // Jika Tamu Undangan
+        const instansi = form.asalInstansi.value;
+        if(!instansi) return Swal.fire('Peringatan', 'Asal Instansi wajib diisi untuk Tamu', 'warning');
+        
+        formData = {
+          nama: nama,
+          noInput: 'TM-' + Math.floor(1000 + Math.random() * 9000), // Kode unik sementara untuk backend
+          cabang: instansi,
+          jenis: 'Tamu Undangan',
+          sertifikasi: '-',
+          status: status
+        };
+      }
 
       Swal.showLoading();
       try {
         const res = await callBackend('savePeserta', formData);
         Swal.fire('Berhasil!', res.message, 'success');
         form.reset();
+        toggleTipePeserta('Anggota'); // Kembali ke default
         loadPesertaData();
       } catch(err) {
         Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
@@ -528,50 +595,65 @@
       const peserta = globalPesertaCache.find(p => String(p.ID) === String(id));
       if(!peserta) return;
 
+      const isTamu = peserta["Status"] === "Tamu Undangan";
       const noAnggotaStr = peserta["Nomor Anggota"] || "";
-      const matchNo = noAnggotaStr.match(/KA-(.*?)\//);
-      const noInputVal = matchNo ? matchNo[1] : "";
+      let noInputVal = "";
+      
+      if(!isTamu) {
+        const matchNo = noAnggotaStr.match(/KA-(.*?)\//);
+        noInputVal = matchNo ? matchNo[1] : noAnggotaStr.replace(/\D/g,'');
+      }
 
       Swal.fire({
         title: 'Edit Data Peserta',
         html: `
           <div class="text-left space-y-3 text-xs">
             <div>
+              <label class="font-semibold text-slate-600">Status</label>
+              <select id="swalStatus" onchange="toggleTipePesertaSwal(this.value)" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
+                <option value="Anggota" ${!isTamu ? 'selected':''}>Anggota AKP2I</option>
+                <option value="Tamu Undangan" ${isTamu ? 'selected':''}>Tamu Undangan</option>
+              </select>
+            </div>
+            
+            <div>
               <label class="font-semibold text-slate-600">Nama Lengkap</label>
               <input type="text" id="swalNama" value="${peserta["Nama Lengkap"]}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
             </div>
-            <div>
-              <label class="font-semibold text-slate-600">Nomor Input (Angka Saja)</label>
-              <input type="number" id="swalNoInput" value="${noInputVal}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
+
+            <!-- Bagian Asal Instansi (Tamu) -->
+            <div id="swalTamuFields" class="${isTamu ? '' : 'hidden'} border-l-2 border-primary pl-2 mt-2">
+              <label class="font-semibold text-slate-600">Asal Instansi</label>
+              <input type="text" id="swalInstansi" value="${isTamu ? peserta["Cabang"] : ''}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
             </div>
-            <div>
-              <label class="font-semibold text-slate-600">Cabang</label>
-              <input type="text" id="swalCabang" value="${peserta["Cabang"]}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="font-semibold text-slate-600">Jenis Anggota</label>
-              <select id="swalJenis" onchange="toggleSertifikasiSwal('swalJenis', 'swalSertifikasiContainer')" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
-                <option value="Utama" ${peserta["Jenis Anggota"]==='Utama'?'selected':''}>Utama</option>
-                <option value="Madya" ${peserta["Jenis Anggota"]==='Madya'?'selected':''}>Madya</option>
-                <option value="Pratama" ${peserta["Jenis Anggota"]==='Pratama'?'selected':''}>Pratama</option>
-                <option value="Kehormatan" ${peserta["Jenis Anggota"]==='Kehormatan'?'selected':''}>Kehormatan</option>
-              </select>
-            </div>
-            <div id="swalSertifikasiContainer" class="${peserta["Jenis Anggota"]==='Utama'?'':'hidden'} bg-slate-50 p-3 rounded-xl border">
-              <label class="font-semibold text-slate-600 block mb-1">Sertifikasi</label>
-              <div class="flex gap-4">
-                <label><input type="radio" name="swalSert" value="A" ${peserta["Sertifikasi"]==='A'?'checked':''}> A</label>
-                <label><input type="radio" name="swalSert" value="B" ${peserta["Sertifikasi"]==='B'?'checked':''}> B</label>
-                <label><input type="radio" name="swalSert" value="C" ${peserta["Sertifikasi"]==='C'||peserta["Sertifikasi"]==='-'?'checked':''}> C</label>
+
+            <!-- Bagian Anggota -->
+            <div id="swalAnggotaFields" class="${!isTamu ? '' : 'hidden'} space-y-3 mt-2">
+              <div>
+                <label class="font-semibold text-slate-600">Nomor Input (Angka Saja)</label>
+                <input type="number" id="swalNoInput" value="${noInputVal}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
               </div>
-            </div>
-            <div>
-              <label class="font-semibold text-slate-600">Status</label>
-              <select id="swalStatus" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
-                <option value="Lunas" ${peserta["Status"]==='Lunas'?'selected':''}>Lunas</option>
-                <option value="Belum Lunas" ${peserta["Status"]==='Belum Lunas'?'selected':''}>Belum Lunas</option>
-                <option value="Tamu Undangan" ${peserta["Status"]==='Tamu Undangan'?'selected':''}>Tamu Undangan</option>
-              </select>
+              <div>
+                <label class="font-semibold text-slate-600">Cabang</label>
+                <input type="text" id="swalCabang" value="${!isTamu ? peserta["Cabang"] : ''}" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="font-semibold text-slate-600">Jenis Anggota</label>
+                <select id="swalJenis" onchange="toggleSertifikasiSwal('swalJenis', 'swalSertifikasiContainer')" class="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white focus:outline-none focus:border-primary">
+                  <option value="Utama" ${peserta["Jenis Anggota"]==='Utama'?'selected':''}>Utama</option>
+                  <option value="Madya" ${peserta["Jenis Anggota"]==='Madya'?'selected':''}>Madya</option>
+                  <option value="Pratama" ${peserta["Jenis Anggota"]==='Pratama'?'selected':''}>Pratama</option>
+                  <option value="Kehormatan" ${peserta["Jenis Anggota"]==='Kehormatan'?'selected':''}>Kehormatan</option>
+                </select>
+              </div>
+              <div id="swalSertifikasiContainer" class="${peserta["Jenis Anggota"]==='Utama'?'':'hidden'} bg-slate-50 p-3 rounded-xl border">
+                <label class="font-semibold text-slate-600 block mb-1">Sertifikasi</label>
+                <div class="flex gap-4">
+                  <label><input type="radio" name="swalSert" value="A" ${peserta["Sertifikasi"]==='A'?'checked':''}> A</label>
+                  <label><input type="radio" name="swalSert" value="B" ${peserta["Sertifikasi"]==='B'?'checked':''}> B</label>
+                  <label><input type="radio" name="swalSert" value="C" ${peserta["Sertifikasi"]==='C'||peserta["Sertifikasi"]==='-'?'checked':''}> C</label>
+                </div>
+              </div>
             </div>
           </div>
         `,
@@ -579,22 +661,27 @@
         confirmButtonText: 'Perbarui',
         cancelButtonText: 'Batal',
         confirmButtonColor: '#00923f',
+        didOpen: () => { toggleTipePesertaSwal(document.getElementById('swalStatus').value); },
         preConfirm: () => {
-          const nama = document.getElementById('swalNama').value;
-          const noInput = document.getElementById('swalNoInput').value;
-          const cabang = document.getElementById('swalCabang').value;
-          const jenis = document.getElementById('swalJenis').value;
-          
-          // Bug Fix: perbaikan kurung tutup dari versi sebelumnya
-          const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
-          
           const status = document.getElementById('swalStatus').value;
-
-          if(!nama || !noInput || !cabang) {
-            Swal.showValidationMessage('Semua field wajib diisi!');
-            return false;
+          const nama = document.getElementById('swalNama').value;
+          
+          if(!nama) { Swal.showValidationMessage('Nama Lengkap wajib diisi!'); return false; }
+          
+          if(status === 'Anggota') {
+            const noInput = document.getElementById('swalNoInput').value;
+            const cabang = document.getElementById('swalCabang').value;
+            const jenis = document.getElementById('swalJenis').value;
+            const sertifikasi = jenis === 'Utama' ? (document.querySelector('input[name="swalSert"]:checked') ? document.querySelector('input[name="swalSert"]:checked').value : 'C') : '';
+            
+            if(!noInput || !cabang) { Swal.showValidationMessage('Nomor & Cabang wajib diisi untuk anggota'); return false; }
+            return { id, nama, noInput, cabang, jenis, sertifikasi, status };
+            
+          } else {
+            const instansi = document.getElementById('swalInstansi').value;
+            if(!instansi) { Swal.showValidationMessage('Asal Instansi wajib diisi!'); return false; }
+            return { id, nama, noInput: peserta["Nomor Anggota"].replace('TM-', ''), cabang: instansi, jenis: 'Tamu Undangan', sertifikasi: '-', status };
           }
-          return { id, nama, noInput, cabang, jenis, sertifikasi, status };
         }
       }).then(async (result) => {
         if(result.isConfirmed) {
@@ -623,12 +710,10 @@
         if(result.isConfirmed) {
           Swal.showLoading();
           try {
-            // Memanggil fungsi 'regenerateQR' di Google Apps Script (Pastikan backend Anda merespon action ini)
             const res = await callBackend('regenerateQR', { id: id });
             Swal.fire('Berhasil!', res.message || 'Data QR peserta berhasil diperbarui.', 'success');
             loadPesertaData();
           } catch(e) {
-            // Jika backend belum memiliki fungsi regenerateQR, berikan peringatan informatif
             Swal.fire('Info', 'Permintaan telah dikirim. Jika tidak ada perubahan, pastikan kode backend (Apps Script) Anda sudah memiliki case action "regenerateQR".', 'info');
             setTimeout(loadPesertaData, 2000);
           }
@@ -649,11 +734,11 @@
               <td class="py-2.5 px-3 text-slate-600">${p["Nomor Anggota"] || ''}</td>
               <td class="py-2.5 px-3 text-slate-600">${p["Cabang"] || ''}</td>
               <td class="py-2.5 px-3 text-slate-600">${p["Jenis Anggota"] || ''}</td>
-              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">${p['Status'] || ''}</span></td>
+              <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${p['Status']=='Anggota'?'bg-emerald-50 text-emerald-600':'bg-blue-50 text-blue-600'}">${p['Status'] || ''}</span></td>
               <td class="py-2.5 px-3 text-center">
                 <button onclick="downloadSingleQR('${p["QR String"] || p["Nomor Anggota"]}', '${p["Nama Lengkap"]}')" class="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs hover:bg-primary/20" title="Unduh Gambar QR"><i class="fa-solid fa-qrcode"></i></button>
               </td>
-              <td class="py-2.5 px-3 text-center space-x-1">
+              <td class="py-2.5 px-3 text-center space-x-1 whitespace-nowrap">
                 <button onclick="editPeserta('${p.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs" title="Edit Peserta"><i class="fa-solid fa-pen"></i></button>
                 <button onclick="regenerateQR('${p.ID}')" class="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs" title="Generate Ulang Data QR"><i class="fa-solid fa-arrows-rotate"></i></button>
               </td>
@@ -792,7 +877,7 @@
           if(peserta) {
             if(nameEl) nameEl.innerText = peserta['Nama Lengkap'];
             if(noEl) noEl.innerText = peserta['Nomor Anggota'];
-            if(cabangEl) cabangEl.innerText = "Cabang: " + peserta['Cabang'];
+            if(cabangEl) cabangEl.innerText = (peserta['Status'] === 'Tamu Undangan' ? "Instansi: " : "Cabang: ") + peserta['Cabang'];
 
             const qrContainer = document.getElementById('cardQrCode');
             if(qrContainer) {
@@ -865,7 +950,6 @@
       saveCardStateToLocal();
     }
 
-    // FUNGSI UNDUH KARTU YANG 100% AMAN DARI BLOKIRAN SERVER / CORS
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       if(!cardElement) return;
@@ -876,16 +960,14 @@
         didOpen: () => { Swal.showLoading(); } 
       });
 
-      // 1. Simpan state background asli
       const originalBgImage = cardElement.style.backgroundImage;
       const originalBgColor = cardElement.style.backgroundColor;
       
       try {
-        // Percobaan normal: merender lengkap dengan gambar
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
           useCORS: true,
-          allowTaint: false, // Penting: False agar kanvas tidak dikunci browser
+          allowTaint: false,
           backgroundColor: '#ffffff',
           logging: false 
         });
@@ -900,11 +982,9 @@
         console.warn("Gagal merender gambar eksternal, beralih ke mode fallback tanpa gambar...");
         
         try {
-          // 2. Manipulasi DOM langsung (menghapus background)
           cardElement.style.backgroundImage = 'none';
           cardElement.style.backgroundColor = '#ffffff';
           
-          // Jeda sebentar agar browser mencatat perubahan DOM sebelum dirender ulang
           await new Promise(resolve => setTimeout(resolve, 50));
           
           const canvasFallback = await html2canvas(cardElement, { 
@@ -925,7 +1005,6 @@
           console.error("Fatal Error html2canvas:", fallbackErr);
           Swal.fire('Gagal', 'Sistem gagal mengkonversi kartu menjadi gambar.', 'error');
         } finally {
-          // 3. Kembalikan background ke kondisi aslinya (meskipun gagal/sukses)
           cardElement.style.backgroundImage = originalBgImage;
           cardElement.style.backgroundColor = originalBgColor;
         }
