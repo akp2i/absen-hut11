@@ -838,36 +838,57 @@
     async function downloadCardImage() {
       const cardElement = document.getElementById('cardPreviewContainer');
       if(!cardElement) return;
-      Swal.fire({ title: 'Memproses Kartu...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      
+      Swal.fire({ 
+        title: 'Memproses Kartu...', 
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); } 
+      });
       
       try {
+        // Percobaan 1: Unduh beserta background (Wajib allowTaint: false agar bisa jadi gambar)
         const canvas = await html2canvas(cardElement, { 
           scale: 2, 
-          useCORS: true, 
-          allowTaint: true,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
           logging: false 
         });
+        
         const link = document.createElement('a');
         link.download = 'Kartu-Peserta-AKP2I.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
         Swal.close();
+        
       } catch(err) {
+        console.warn("Gagal render gambar luar, beralih ke mode tanpa background...");
+        
         try {
-          const originalBg = cardElement.style.backgroundImage;
-          cardElement.style.backgroundImage = 'none';
-          cardElement.style.backgroundColor = '#ffffff';
+          // Percobaan 2: Fallback instan - Unduh tanpa background menggunakan 'onclone' (tanpa merusak tampilan asli)
+          const canvasFallback = await html2canvas(cardElement, { 
+            scale: 2, 
+            useCORS: true, 
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            onclone: (clonedDoc) => {
+              const clonedCard = clonedDoc.getElementById('cardPreviewContainer');
+              if (clonedCard) {
+                clonedCard.style.backgroundImage = 'none';
+                clonedCard.style.backgroundColor = '#ffffff';
+              }
+            }
+          });
           
-          const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true, allowTaint: true });
           const link = document.createElement('a');
           link.download = 'Kartu-Peserta-AKP2I-Tanpa-Bg.png';
-          link.href = canvas.toDataURL('image/png');
+          link.href = canvasFallback.toDataURL('image/png');
           link.click();
           
-          cardElement.style.backgroundImage = originalBg;
-          Swal.fire('Berhasil (Tanpa Background)', 'Background gagal dimuat, kartu berhasil diunduh tanpa background.', 'success');
+          Swal.fire('Berhasil (Tanpa Background)', 'Karena pembatasan server gambar, kartu berhasil diunduh dengan latar belakang putih.', 'success');
         } catch(fallbackErr) {
-          Swal.fire('Gagal', 'Terjadi kesalahan saat mengunduh kartu.', 'error');
+          console.error(fallbackErr);
+          Swal.fire('Gagal', 'Terjadi kesalahan sistem saat memproses gambar.', 'error');
         }
       }
     }
